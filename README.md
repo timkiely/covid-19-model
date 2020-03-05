@@ -14,8 +14,42 @@ theme_set(theme_tq())
 # updated every ~4 hours
 cases_data <- read_csv("http://hgis.uw.edu/virus/assets/virus.csv")
 
+cases_data$datetime %>% range()
+```
 
-# names by country
+    ## [1] "2020-01-21" "2020-03-05"
+
+``` r
+max_date <- 
+  cases_data %>% 
+    select(datetime, `new york`) %>% 
+    na.omit() %>% summarise(max_date = max(datetime)) %>% 
+  pull(max_date)
+
+ny_cases <- 
+  cases_data %>% 
+  select(datetime, `new york`) %>% 
+  na.omit() %>% 
+  separate(`new york`, into = c("Confirmed","Suspected","Cured","Deaths")
+           , sep = "-", extra = "warn", remove = F) %>% 
+  mutate_at(vars(Confirmed:Deaths), as.numeric) %>% 
+  mutate(Active = Confirmed+Suspected-Cured-Deaths) %>%
+  filter(datetime == max(datetime))
+
+message("Number of confirmed NY cases as of ",max_date,": ",ny_cases$Confirmed)
+```
+
+    ## Number of confirmed NY cases as of 2020-03-05: 2
+
+``` r
+message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
+```
+
+    ## Number of active NY cases as of 2020-03-05: 2
+
+# Names by country
+
+``` r
 china_names <- 
   cases_data %>% 
   select(anhui:zhejiang) %>% 
@@ -49,7 +83,8 @@ israel_names <- cases_data %>% select(israel) %>% names()
 processed <-
   cases_data %>% 
   gather(area, cases, -datetime) %>% 
-  separate(cases, into = c("Confirmed","Suspected","Cured","Deaths"), sep = "-", extra = "warn", remove = F) %>% 
+  separate(cases, into = c("Confirmed","Suspected","Cured","Deaths")
+           , sep = "-", extra = "warn", remove = F) %>% 
   mutate_at(vars(Confirmed:Deaths), function(x)ifelse(is.na(x),0,x)) %>% 
   mutate_at(vars(Confirmed:Deaths), as.numeric) %>% 
   mutate(Active = Confirmed+Suspected-Cured-Deaths) %>% 
