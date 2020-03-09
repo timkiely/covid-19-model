@@ -1,29 +1,31 @@
 Modeling Scenarios for Covid-19
 ================
 
+# from: <https://github.com/jakobzhao/virus>
+
 ``` r
 library(tidyverse)
 library(tidyquant)
+library(crayon)
 
 theme_set(theme_tq())
 ```
 
-# from: <https://github.com/jakobzhao/virus>
-
 ``` r
 # updated every ~4 hours
-cases_data <- read_csv("http://hgis.uw.edu/virus/assets/virus.csv")
+cases_data <- suppressMessages(read_csv("http://hgis.uw.edu/virus/assets/virus.csv"))
 
-cases_data$datetime %>% range()
+
+message("Data from ", min(cases_data$datetime)," to ",max(cases_data$datetime))
 ```
 
-    ## [1] "2020-01-21" "2020-03-05"
+    ## Data from 2020-01-21 to 2020-03-08
 
 ``` r
 max_date <- 
   cases_data %>% 
-    select(datetime, `new york`) %>% 
-    na.omit() %>% summarise(max_date = max(datetime)) %>% 
+  select(datetime, `new york`) %>% 
+  na.omit() %>% summarise(max_date = max(datetime)) %>% 
   pull(max_date)
 
 ny_cases <- 
@@ -36,16 +38,18 @@ ny_cases <-
   mutate(Active = Confirmed+Suspected-Cured-Deaths) %>%
   filter(datetime == max(datetime))
 
-message("Number of confirmed NY cases as of ",max_date,": ",ny_cases$Confirmed)
+
+
+message("Number of confirmed NY cases as of ",max_date,": ", ny_cases$Confirmed,"\n")
 ```
 
-    ## Number of confirmed NY cases as of 2020-03-05: 2
+    ## Number of confirmed NY cases as of 2020-03-08: 106
 
 ``` r
 message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 ```
 
-    ## Number of active NY cases as of 2020-03-05: 2
+    ## Number of active NY cases as of 2020-03-08: 106
 
 # Names by country
 
@@ -91,12 +95,12 @@ processed <-
   mutate(area = str_remove_all(area, "\\\\xa0")) %>% 
   mutate(first_reported = case_when(!is.na(cases)&is.na(lag(cases,1)) ~ 1
                                     , TRUE ~ NA_real_
-                                    )) %>% 
+  )) %>% 
   group_by(area) %>%
   mutate(first_reported = case_when(sum(first_reported, na.rm = T)==0&datetime==min(datetime) ~ 1
                                     , TRUE ~ first_reported
-                                    )
-         ) %>% 
+  )
+  ) %>% 
   fill(first_reported, .direction = "down") %>% 
   mutate(count_report_days = case_when(first_reported  == 1~1, TRUE ~ 0)) %>% 
   mutate(days_since_reported = cumsum(count_report_days)) %>% 
@@ -134,6 +138,18 @@ processed %>%
 ```
 
 ![](README_files/figure-gfm/days%20since%20reported-1.png)<!-- -->
+
+# Most advanced cases - Chinese Provinces
+
+``` r
+processed %>% 
+  filter(Country=="China", area!="hubei") %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Active, group = area, label = area, color = Country)+
+  geom_line()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 # US
 
@@ -182,7 +198,7 @@ not_na_processed <- processed %>%
 
 not_na_western_only <- not_na_processed %>% 
   filter(Country%in% c("US","canada","france","australia","germany","israel"))
-  
+
 not_na_us_states <- not_na_processed %>% 
   filter(area%in% us_names) %>% 
   filter(area!='us')
@@ -193,16 +209,16 @@ not_na_japan <- not_na_processed %>%
 
 model_all <- loess(Active~days_since_reported, data = not_na_processed
                    , control = loess.control(surface = "direct")
-                   )  
+)  
 model_western <- loess(Active~days_since_reported, data = not_na_western_only
                        , control = loess.control(surface = "direct")
-                       )  
+)  
 model_us_states <- loess(Active~days_since_reported, data = not_na_us_states
                          , control = loess.control(surface = "direct")
-                         )  
+)  
 model_japan <- loess(Active~days_since_reported
                      , data = not_na_japan, control = loess.control(surface = "direct")
-                     )  
+)  
 ```
 
 ``` r

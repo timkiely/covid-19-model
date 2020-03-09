@@ -47,32 +47,15 @@ us_cases <-
   tibble() %>% 
   slice(-1) 
 
+us_cases_names <- head(us_cases,1) %>% unlist() %>% as.character()
+
 us_cases_body <- 
   us_cases %>% 
   slice(-1) %>% 
-  .[[1]] %>% 
-  tibble() %>% 
-  select(-1)
-
-names(us_cases_body) <- NULL
-tibble(us_cases_body[[1]])
-
-names(us_cases_body) <- as.character(unlist(us_cases[1,]))
-
-# The automatically assigned column names are OK except that
-# instead of County/city and State columns we have two
-# columns called Location, due to the unfortunate use of
-# colspans in the header row.  The tidyverse abhors
-# duplicated column names, so we have to fix those, and make
-# some of the other colnames a bit more tidyverse-friendly.
-us_cases_colnames <- colnames(us_cases)
-us_cases_colnames[min(which(us_cases_colnames == "Location"))] <- "CityCounty"
-us_cases_colnames[min(which(us_cases_colnames == "Location"))] <- "State"
-us_cases_colnames <- us_cases_colnames %>% str_replace("Location", 
-                                                       "CityCounty") %>% str_replace("Location", "State") %>% str_replace("Case no.", 
-                                                                                                                          "CaseNo") %>% str_replace("Date announced", "Date") %>% str_replace("CDC origin type", 
-                                                                                                                                                                                              "OriginTypeCDC") %>% str_replace("Treatment facility", "TreatmentFacility")
-colnames(us_cases) <- us_cases_colnames
+  .[[1]] 
+  
+names(us_cases_body) <- us_cases_names
+us_cases_body <- as_tibble(us_cases_body)
 
 # utility function to remove wikipedia references in square
 # brackets
@@ -82,15 +65,16 @@ rm_refs <- function(x) stringr::str_split(x, "\\[", simplify = TRUE)[, 1]
 # integer, convert the date column to date type and then lose
 # all rows which then have NA in CaseNo or NA in the date
 # column
-us_cases_clean <- us_cases %>% 
-  mutate(CaseNo = rm_refs(CaseNo)) %>% 
-  mutate(CaseNo = as.integer(CaseNo), Date = as.Date(parse_date_time(Date, c("%B %d, %Y", "%d %B, %Y")))) %>% 
+us_cases_clean <- us_cases_body %>% 
+  mutate(CaseNo = rm_refs(`Case no.`)) %>% 
+  mutate(CaseNo = as.integer(CaseNo)
+         , Date = as.Date(parse_date_time(`Date announced`, c("%B %d, %Y", "%d %B, %Y")))) %>% 
   filter(!is.na(CaseNo), !is.na(Date)) %>% # convert the various versions of unknown into NA in the
   # OriginTypeCDC column
-  mutate(OriginTypeCDC = if_else(OriginTypeCDC %in% c("Unknown", "Undisclosed"), NA_character_, OriginTypeCDC))
+  mutate(OriginTypeCDC = if_else(`CDC origin type` %in% c("Unknown", "Undisclosed"), NA_character_, `CDC origin type`))
 
 
-
+us_cases_clean %>% count(`County/city`) %>% print(n=Inf)
 
 
 # Fitting a log-linear model to the epidemic curve ----
