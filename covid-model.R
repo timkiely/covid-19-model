@@ -99,6 +99,12 @@ processed <-
   ))
 
 
+# US data 
+us_cases <- processed %>% filter(area =="us") %>% filter(!is.na(first_reported))
+
+
+
+
 # Days since reported
 processed %>% 
   filter(Country!="Other") %>% 

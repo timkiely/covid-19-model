@@ -42,7 +42,7 @@ outbreak_webpage %>%
 us_cases <- 
   outbreak_webpage %>% 
   html_nodes("table") %>% 
-  .[[38]] %>% 
+  .[[39]] %>% 
   html_table(fill = TRUE, header = F) %>% 
   tibble() %>% 
   slice(-1) 
@@ -71,10 +71,11 @@ us_cases_clean <- us_cases_body %>%
          , Date = as.Date(parse_date_time(`Date announced`, c("%B %d, %Y", "%d %B, %Y")))) %>% 
   filter(!is.na(CaseNo), !is.na(Date)) %>% # convert the various versions of unknown into NA in the
   # OriginTypeCDC column
-  mutate(OriginTypeCDC = if_else(`CDC origin type` %in% c("Unknown", "Undisclosed"), NA_character_, `CDC origin type`))
+  mutate(OriginTypeCDC = if_else(`CDC origin type` %in% c("Unknown", "Undisclosed"), NA_character_, `CDC origin type`)) %>% 
+  mutate(State = str_remove_all(State, "[']|[s]|[mid-]"))
 
-
-us_cases_clean %>% count(`County/city`) %>% print(n=Inf)
+us_cases_clean %>% count(State) %>% print(n=Inf)
+  
 
 
 # Fitting a log-linear model to the epidemic curve ----
