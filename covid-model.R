@@ -103,7 +103,21 @@ processed <-
 us_cases <- processed %>% filter(area =="us") %>% filter(!is.na(first_reported))
 
 
+# Most advanced cases - China
+processed %>% 
+  filter(Country=="China", area!="hubei") %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Confirmed, group = area, label = area, color = Country)+
+  geom_line(color = 2) + 
+  theme_tq()+
+  scale_color_tq()+
+  theme(legend.position = "none")+
+  labs(title = "Covid-19 cases in Chinese provinces"
+       , subtitle = "Each line represents a Chinese province. Excludes Hubei (Wuhan)"
+       , y = "Count of Confirmed Cases"
+       , x = "Days since outbreak first reported")
 
+plotly::ggplotly()
 
 # Days since reported
 processed %>% 

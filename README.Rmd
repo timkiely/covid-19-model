@@ -146,6 +146,7 @@ processed %>%
   ggplot()+
   aes(x = days_since_reported, y = Active, group = area, label = area, color = Country)+
   geom_line()
+
 ```
 
 
