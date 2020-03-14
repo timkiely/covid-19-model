@@ -103,19 +103,50 @@ processed <-
 us_cases <- processed %>% filter(area =="us") %>% filter(!is.na(first_reported))
 
 
-# Most advanced cases - China
+
+# New York State Cases
 processed %>% 
+  ungroup() %>% 
+  filter(area=="new york")  %>% 
+  filter(datetime == max(datetime)) %>% glimpse
+  
+
+NYC_reports <- 
+  tribble(~days_since_reported, ~Confirmed
+          , 1, 0
+          , 4, 43 # Wednesday 3/11
+          , 5, 100 # Thursday 3/12
+          , 6, 170 # Friday 3/13
+          , 7, 213 # Saturday 3/14
+          ) %>% 
+  mutate(area = "NYC", Country = "US")
+
+
+# Most advanced cases - China
+NYC_vs_China_cases <-
+  processed %>% 
   filter(Country=="China", area!="hubei") %>% 
   ggplot()+
   aes(x = days_since_reported, y = Confirmed, group = area, label = area, color = Country)+
   geom_line(color = 2) + 
+  geom_line(data = NYC_reports, color = "black", size = 2)+
   theme_tq()+
   scale_color_tq()+
   theme(legend.position = "none")+
-  labs(title = "Covid-19 cases in Chinese provinces"
-       , subtitle = "Each line represents a Chinese province. Excludes Hubei (Wuhan)"
+  labs(title = "NYC Covid-19 cases vs. Chinese provinces"
+       , subtitle = "Each line represents a Chinese province. Excludes Hubei (Wuhan). \n Black line is NYC"
        , y = "Count of Confirmed Cases"
-       , x = "Days since outbreak first reported")
+       , x = "Days since outbreak first reported"
+       , caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
+
+
+jpeg('img/covid-nyc-china-20200314.jpeg'
+     , width = 480*2
+     , height = 480*2
+     , res = 200
+     )
+NYC_vs_China_cases
+dev.off()
 
 plotly::ggplotly()
 

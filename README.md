@@ -1,7 +1,7 @@
 Modeling Scenarios for Covid-19
 ================
 
-# from: <https://github.com/jakobzhao/virus>
+# Data from: <https://github.com/jakobzhao/virus>
 
 ``` r
 library(tidyverse)
@@ -19,7 +19,7 @@ cases_data <- suppressMessages(read_csv("http://hgis.uw.edu/virus/assets/virus.c
 message("Data from ", min(cases_data$datetime)," to ",max(cases_data$datetime))
 ```
 
-    ## Data from 2020-01-21 to 2020-03-08
+    ## Data from 2020-01-21 to 2020-03-14
 
 ``` r
 max_date <- 
@@ -43,13 +43,13 @@ ny_cases <-
 message("Number of confirmed NY cases as of ",max_date,": ", ny_cases$Confirmed,"\n")
 ```
 
-    ## Number of confirmed NY cases as of 2020-03-08: 106
+    ## Number of confirmed NY cases as of 2020-03-14: 421
 
 ``` r
 message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 ```
 
-    ## Number of active NY cases as of 2020-03-08: 106
+    ## Number of active NY cases as of 2020-03-14: 421
 
 # Names by country
 
@@ -127,6 +127,43 @@ processed <-
   ))
 ```
 
+# Overlaying NYC Cases with the Chinese Provinces (ex-Wuhan)
+
+``` r
+NYC_reports <- 
+  tribble(~days_since_reported, ~Confirmed
+          , 1, 0
+          , 4, 43 # Wednesday 3/11
+          , 5, 100 # Thursday 3/12
+          , 6, 170 # Friday 3/13
+          , 7, 213 # Saturday 3/14
+  ) %>% 
+  mutate(area = "NYC", Country = "US")
+
+
+# Most advanced cases - China
+NYC_vs_China_cases <-
+  processed %>% 
+  filter(Country=="China", area!="hubei") %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Confirmed, group = area, label = area, color = Country)+
+  geom_line(color = 2) + 
+  geom_line(data = NYC_reports, color = "black", size = 2)+
+  theme_tq()+
+  scale_color_tq()+
+  theme(legend.position = "none")+
+  labs(title = "NYC Covid-19 cases vs. Chinese provinces"
+       , subtitle = "Each line represents a Chinese province. Excludes Hubei (Wuhan).
+Black line is NYC. Data current as of 2020-03-14"
+, y = "Count of Confirmed Cases"
+, x = "Days since outbreak first reported"
+, caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
+
+NYC_vs_China_cases
+```
+
+![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
 # Days since reported
 
 ``` r
@@ -149,7 +186,7 @@ processed %>%
   geom_line()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 # US
 
@@ -175,7 +212,7 @@ processed %>%
 
 ![](README_files/figure-gfm/Western%20Countries-1.png)<!-- -->
 
-# NYC
+# New York
 
 ``` r
 processed %>% 
@@ -192,61 +229,74 @@ processed %>%
 ``` r
 library(modelr)
 
-not_na_processed <- processed %>% 
+not_na_processed <- 
+  processed %>% 
   mutate(Country = as.factor(Country)) %>% 
-  filter(!is.na(days_since_reported)) 
+  filter(!is.na(days_since_reported)) %>% 
+  group_by(area) %>% 
+  filter(Active>20) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  ungroup() %>% 
+  select(-c(first_reported, cases, Confirmed:Deaths)) 
 
-not_na_western_only <- not_na_processed %>% 
-  filter(Country%in% c("US","canada","france","australia","germany","israel"))
+country_model <- function(data){
+  loess(Active~days_since_reported
+        , data = data
+        , control = loess.control(surface = "direct")
+  )    
+}
 
-not_na_us_states <- not_na_processed %>% 
-  filter(area%in% us_names) %>% 
-  filter(area!='us')
+model_all <- not_na_processed %>% country_model()
 
-not_na_japan <- not_na_processed %>% 
-  filter(area=='japan')
+model_western <- not_na_processed %>% 
+  filter(Country%in% c("US","canada","france","australia","germany","israel")) %>% 
+  country_model()
 
+model_us_states <- not_na_processed %>% 
+  filter(area %in% us_names, area!='us') %>% 
+  country_model()
 
-model_all <- loess(Active~days_since_reported, data = not_na_processed
-                   , control = loess.control(surface = "direct")
-)  
-model_western <- loess(Active~days_since_reported, data = not_na_western_only
-                       , control = loess.control(surface = "direct")
-)  
-model_us_states <- loess(Active~days_since_reported, data = not_na_us_states
-                         , control = loess.control(surface = "direct")
-)  
-model_japan <- loess(Active~days_since_reported
-                     , data = not_na_japan, control = loess.control(surface = "direct")
-)  
-```
+model_japan <- not_na_processed %>% 
+  filter(area=='japan') %>% 
+  country_model()
 
-``` r
+model_italy <- not_na_processed %>% 
+  filter(area=='italy') %>% 
+  country_model()
+
+model_china_ex_wuhan <- not_na_processed %>% 
+  filter(Country=='China', area != "hubei") %>% 
+  country_model()
+
 actual_nyc <- 
   not_na_processed %>% 
   filter(area=="new york") %>% 
   filter(days_since_reported>0) %>% 
   select(days_since_reported, "Actual Active" = Active) %>% 
-  mutate(model = "Actual Active")
+  mutate(model = "Actual Active") 
 
-max_days <- not_na_processed %>% 
-  filter(area=="new york") %>% 
+max_days <- actual_nyc %>% 
   summarise(days = max(days_since_reported)) %>% 
   pull(days)
 
+
+
 not_na_processed %>% 
+  group_by(area) %>% 
+  filter(Active>20) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  ungroup() %>% 
   data_grid(area, days_since_reported) %>% 
   filter(area=="new york") %>% 
   add_predictions(model_all, var = "world model") %>%
-  add_predictions(model_western, var = "western model") %>% 
-  add_predictions(model_us_states, var = "us model") %>% 
-  add_predictions(model_japan, var = "japan model") %>% 
+  add_predictions(model_japan, var = "japan model") %>%
+  add_predictions(model_china_ex_wuhan, var = "china model") %>%
   gather(model, prediction, -area, -days_since_reported) %>% 
   ggplot()+
   aes(days_since_reported, y = prediction, color = model)+
   geom_line(size = 1)+
-  geom_line(data = actual_nyc, aes(y = `Actual Active`), linetype = 2, size = 3)+
-  geom_vline(xintercept = max_days, color = "black", size = 2)+
+  geom_line(data = actual_nyc, aes(y = `Actual Active`), linetype = 1, size = 2)+
+  geom_vline(xintercept = max_days, color = "black", size = 1)+
   theme_tq()+
   scale_color_tq()+
   labs(title = "New York City Active Case Scenarios"
@@ -255,4 +305,4 @@ not_na_processed %>%
        , x = "Days since first reported cases")
 ```
 
-![](README_files/figure-gfm/NYC%20predictions-1.png)<!-- -->
+![](README_files/figure-gfm/modeling-1.png)<!-- -->
