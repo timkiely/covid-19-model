@@ -7,6 +7,7 @@ Modeling Scenarios for Covid-19
 library(tidyverse)
 library(tidyquant)
 library(crayon)
+library(kableExtra)
 
 theme_set(theme_tq())
 ```
@@ -19,7 +20,7 @@ cases_data <- suppressMessages(read_csv("http://hgis.uw.edu/virus/assets/virus.c
 message("Data from ", min(cases_data$datetime)," to ",max(cases_data$datetime))
 ```
 
-    ## Data from 2020-01-21 to 2020-03-14
+    ## Data from 2020-01-21 to 2020-03-15
 
 ``` r
 max_date <- 
@@ -43,13 +44,13 @@ ny_cases <-
 message("Number of confirmed NY cases as of ",max_date,": ", ny_cases$Confirmed,"\n")
 ```
 
-    ## Number of confirmed NY cases as of 2020-03-14: 421
+    ## Number of confirmed NY cases as of 2020-03-15: 524
 
 ``` r
 message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 ```
 
-    ## Number of active NY cases as of 2020-03-14: 421
+    ## Number of active NY cases as of 2020-03-15: 522
 
 # Names by country
 
@@ -137,6 +138,8 @@ NYC_reports <-
           , 5, 100 # Thursday 3/12
           , 6, 170 # Friday 3/13
           , 7, 213 # Saturday 3/14
+          , 8, 269 # Sunday 3/15 as of 9:00 am
+
   ) %>% 
   mutate(area = "NYC", Country = "US")
 
@@ -164,6 +167,220 @@ NYC_vs_China_cases
 
 ![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
+``` r
+NYC_reports %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+
+<thead>
+
+<tr>
+
+<th style="text-align:right;">
+
+days\_since\_reported
+
+</th>
+
+<th style="text-align:right;">
+
+Confirmed
+
+</th>
+
+<th style="text-align:left;">
+
+area
+
+</th>
+
+<th style="text-align:left;">
+
+Country
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+<td style="text-align:left;">
+
+NYC
+
+</td>
+
+<td style="text-align:left;">
+
+US
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:right;">
+
+4
+
+</td>
+
+<td style="text-align:right;">
+
+43
+
+</td>
+
+<td style="text-align:left;">
+
+NYC
+
+</td>
+
+<td style="text-align:left;">
+
+US
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:right;">
+
+5
+
+</td>
+
+<td style="text-align:right;">
+
+100
+
+</td>
+
+<td style="text-align:left;">
+
+NYC
+
+</td>
+
+<td style="text-align:left;">
+
+US
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:right;">
+
+6
+
+</td>
+
+<td style="text-align:right;">
+
+170
+
+</td>
+
+<td style="text-align:left;">
+
+NYC
+
+</td>
+
+<td style="text-align:left;">
+
+US
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:right;">
+
+7
+
+</td>
+
+<td style="text-align:right;">
+
+213
+
+</td>
+
+<td style="text-align:left;">
+
+NYC
+
+</td>
+
+<td style="text-align:left;">
+
+US
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:right;">
+
+8
+
+</td>
+
+<td style="text-align:right;">
+
+269
+
+</td>
+
+<td style="text-align:left;">
+
+NYC
+
+</td>
+
+<td style="text-align:left;">
+
+US
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
 # Days since reported
 
 ``` r
@@ -186,7 +403,7 @@ processed %>%
   geom_line()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 # US
 
@@ -242,7 +459,7 @@ not_na_processed <-
 country_model <- function(data){
   loess(Active~days_since_reported
         , data = data
-        , control = loess.control(surface = "direct")
+        #, control = loess.control(surface = "direct")
   )    
 }
 
@@ -268,6 +485,15 @@ model_china_ex_wuhan <- not_na_processed %>%
   filter(Country=='China', area != "hubei") %>% 
   country_model()
 
+model_france <- not_na_processed %>% 
+  filter(Country=='france') %>% 
+  country_model()
+
+model_germany <- not_na_processed %>% 
+  filter(Country=='germany') %>% 
+  country_model()
+
+
 actual_nyc <- 
   not_na_processed %>% 
   filter(area=="new york") %>% 
@@ -288,9 +514,15 @@ not_na_processed %>%
   ungroup() %>% 
   data_grid(area, days_since_reported) %>% 
   filter(area=="new york") %>% 
+  
+  
   add_predictions(model_all, var = "world model") %>%
   add_predictions(model_japan, var = "japan model") %>%
   add_predictions(model_china_ex_wuhan, var = "china model") %>%
+  add_predictions(model_france, var = "france model") %>%
+  add_predictions(model_germany, var = "germany model") %>%
+
+    
   gather(model, prediction, -area, -days_since_reported) %>% 
   ggplot()+
   aes(days_since_reported, y = prediction, color = model)+

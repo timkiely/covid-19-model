@@ -118,6 +118,7 @@ NYC_reports <-
           , 5, 100 # Thursday 3/12
           , 6, 170 # Friday 3/13
           , 7, 213 # Saturday 3/14
+          , 8, 269 # Sunday 3/15 as of 9:00 am
           ) %>% 
   mutate(area = "NYC", Country = "US")
 
@@ -139,6 +140,8 @@ NYC_vs_China_cases <-
        , x = "Days since outbreak first reported"
        , caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
 
+
+NYC_vs_China_cases
 
 jpeg('img/covid-nyc-china-20200314.jpeg'
      , width = 480*2
