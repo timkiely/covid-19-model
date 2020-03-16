@@ -142,17 +142,8 @@ processed <-
 # Overlaying NYC Cases with the Chinese Provinces (ex-Wuhan)
 
 ```{r}
-NYC_reports <- 
-  tribble(~days_since_reported, ~Confirmed
-          , 1, 0
-          , 4, 43 # Wednesday 3/11
-          , 5, 100 # Thursday 3/12
-          , 6, 170 # Friday 3/13
-          , 7, 213 # Saturday 3/14
-          , 8, 269 # Sunday 3/15 as of 9:00 am
 
-  ) %>% 
-  mutate(area = "NYC", Country = "US")
+source("Recording NYC Cases.R")
 
 
 # Most advanced cases - China
@@ -168,7 +159,7 @@ NYC_vs_China_cases <-
   theme(legend.position = "none")+
   labs(title = "NYC Covid-19 cases vs. Chinese provinces"
        , subtitle = "Each line represents a Chinese province. Excludes Hubei (Wuhan).
-Black line is NYC. Data current as of 2020-03-14"
+Black line is NYC. Data current as of 2020-03-15"
 , y = "Count of Confirmed Cases"
 , x = "Days since outbreak first reported"
 , caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
