@@ -133,7 +133,7 @@ NYC_vs_China_cases <-
 
 NYC_vs_China_cases
 
-jpeg('img/covid-nyc-china-20200314.jpeg'
+jpeg('img/covid-nyc-china-2020 03 15 2100.jpeg'
      , width = 480*2
      , height = 480*2
      , res = 200
@@ -141,7 +141,30 @@ jpeg('img/covid-nyc-china-20200314.jpeg'
 NYC_vs_China_cases
 dev.off()
 
-plotly::ggplotly()
+
+US_States <- 
+  processed %>% 
+  filter(Country=="US", area!="us") %>% 
+  group_by(area) %>% 
+  filter(Confirmed>20) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Confirmed, color = area)+
+  geom_line(size = 2)+
+  theme_tq()+
+  scale_color_tq(theme = "light")+
+  labs(x = "Days since reaching 20 cases"
+       , y = "Confirmed Cases")
+
+
+
+jpeg('img/covid-US-States-2020 03 15 2100.jpeg'
+     , width = 480*2
+     , height = 480*2
+     , res = 200
+)
+US_States
+dev.off()
 
 # Days since reported
 processed %>% 

@@ -179,7 +179,28 @@ NYC_reports %>%
 
 
 
-# Days since reported
+
+# US
+
+```{r US states}
+processed %>% 
+  filter(Country=="US", area!="us") %>% 
+  group_by(area) %>% 
+  filter(Confirmed>20) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Confirmed, color = area)+
+  geom_line(size = 2)+
+  theme_tq()+
+  scale_color_tq(theme = "light")+
+  labs(x = "Days since reaching 20 cases"
+       , y = "Confirmed Cases")
+
+```
+
+
+
+# Active Cases
 
 ```{r days since reported}
 
