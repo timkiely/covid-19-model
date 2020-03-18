@@ -30,7 +30,7 @@ cases_data <- suppressMessages(read_csv(latest_file))
 message("Data from ", min(cases_data$datetime)," to ",max(cases_data$datetime))
 ```
 
-    ## Data from 2020-01-21 to 2020-03-16
+    ## Data from 2020-01-21 to 2020-03-18
 
 ``` r
 max_date <- 
@@ -54,13 +54,13 @@ ny_cases <-
 message("Number of confirmed NY cases as of ",max_date,": ", ny_cases$Confirmed,"\n")
 ```
 
-    ## Number of confirmed NY cases as of 2020-03-16: 729
+    ## Number of confirmed NY cases as of 2020-03-18: 1650
 
 ``` r
 message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 ```
 
-    ## Number of active NY cases as of 2020-03-16: 723
+    ## Number of active NY cases as of 2020-03-18: 1635
 
 # Process case data
 
@@ -173,9 +173,21 @@ processed %>%
 ``` r
 processed %>% 
   filter(Country!="Other") %>% 
+  filter(Active>20) %>% 
+  group_by(area) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  mutate(label = ifelse(days_since_reported==max(days_since_reported) & 
+                            Active>2000, area, NA_character_)) %>% 
   ggplot()+
   aes(x = days_since_reported, y = Active, group = area, label = area, color = Country)+
-  geom_line()
+  geom_line()+
+  
+  geom_text(aes(label = label))+
+  scale_color_tq()+
+  theme_tq()+
+  theme(plot.title.position = "plot")+
+  labs(title = "Active Cases Worldwide"
+       , x = "days since reacing 20 active cases")
 ```
 
 ![](README_files/figure-gfm/days%20since%20reported-1.png)<!-- -->

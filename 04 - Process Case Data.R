@@ -29,7 +29,7 @@ russia_names <- cases_data %>% select(russia) %>% names()
 italy_names <- cases_data %>% select(italy) %>% names()
 iran_names <- cases_data %>% select(iran) %>% names()
 israel_names <- cases_data %>% select(israel) %>% names()
-
+spain_names <- cases_data %>% select(spain) %>% names()
 
 
 # The first sequel represents the number of confirmed cases, 
@@ -73,6 +73,7 @@ processed <-
     , area %in% italy_names ~ "italy"
     , area %in% iran_names ~ "iran"
     , area %in% israel_names ~ "israel"
+    , area %in% spain_names ~ "spain"
     
     , TRUE ~ "Other"
   ))

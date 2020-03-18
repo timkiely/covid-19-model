@@ -184,15 +184,29 @@ processed %>%
 ```
 
 
+
+
 # Active Cases
 
 ```{r days since reported}
 
 processed %>% 
   filter(Country!="Other") %>% 
+  filter(Active>20) %>% 
+  group_by(area) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  mutate(label = ifelse(days_since_reported==max(days_since_reported) & 
+                            Active>2000, area, NA_character_)) %>% 
   ggplot()+
   aes(x = days_since_reported, y = Active, group = area, label = area, color = Country)+
-  geom_line()
+  geom_line()+
+  
+  geom_text(aes(label = label))+
+  scale_color_tq()+
+  theme_tq()+
+  theme(plot.title.position = "plot")+
+  labs(title = "Active Cases Worldwide"
+       , x = "days since reacing 20 active cases")
 
 ```
 
