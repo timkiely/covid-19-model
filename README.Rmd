@@ -107,6 +107,31 @@ processed %>%
 
 ```
 
+
+```{r}
+
+
+processed %>% 
+  filter(area%in%c("US","italy")) %>%  
+  bind_rows(NYC_reports %>% mutate(Country = "NYC")) %>% 
+  group_by(area) %>% 
+  filter(Confirmed>20) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Deaths, group = area, color = Country)+
+  geom_line(size = 2, alpha = 0.6) + 
+  theme_tq()+
+  scale_color_tq()+
+  theme(legend.position = "bottom")+
+  labs(title = "Covid-19 deaths NYC vs. Italy"
+       , y = "Deceased"
+       , x = "Days since reaching 20 reported cases"
+       , caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
+
+```
+
+
+
 ```{r}
 
 processed %>% 
@@ -150,7 +175,7 @@ processed %>%
   group_by(area) %>% 
   filter(Confirmed>20) %>% 
   mutate(days_since_reported = 1:n()) %>% 
-   mutate(label = if_else(days_since_reported == max(days_since_reported) & Confirmed>100
+   mutate(label = if_else(days_since_reported == max(days_since_reported) & Confirmed>1000
                          , as.character(area), NA_character_)) %>%
   ggplot()+
   aes(x = days_since_reported, y = Confirmed, color = area)+
@@ -159,6 +184,7 @@ processed %>%
                    nudge_x = 1,
                    na.rm = TRUE) +
   theme_tq()+
+  theme(legend.position = "none")+
   scale_color_tq(theme = "light")+
   labs(x = "Days since reaching 20 cases"
        , y = "Confirmed Cases")

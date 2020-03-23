@@ -30,7 +30,7 @@ cases_data <- suppressMessages(read_csv(latest_file))
 message("Data from ", min(cases_data$datetime)," to ",max(cases_data$datetime))
 ```
 
-    ## Data from 2020-01-21 to 2020-03-18
+    ## Data from 2020-01-21 to 2020-03-23
 
 ``` r
 max_date <- 
@@ -54,13 +54,13 @@ ny_cases <-
 message("Number of confirmed NY cases as of ",max_date,": ", ny_cases$Confirmed,"\n")
 ```
 
-    ## Number of confirmed NY cases as of 2020-03-18: 1650
+    ## Number of confirmed NY cases as of 2020-03-23: 20875
 
 ``` r
 message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 ```
 
-    ## Number of active NY cases as of 2020-03-18: 1635
+    ## Number of active NY cases as of 2020-03-23: 20718
 
 # Process case data
 
@@ -97,6 +97,27 @@ processed %>%
 
 ``` r
 processed %>% 
+  filter(area%in%c("US","italy")) %>%  
+  bind_rows(NYC_reports %>% mutate(Country = "NYC")) %>% 
+  group_by(area) %>% 
+  filter(Confirmed>20) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Deaths, group = area, color = Country)+
+  geom_line(size = 2, alpha = 0.6) + 
+  theme_tq()+
+  scale_color_tq()+
+  theme(legend.position = "bottom")+
+  labs(title = "Covid-19 deaths NYC vs. Italy"
+       , y = "Deceased"
+       , x = "Days since reaching 20 reported cases"
+       , caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+
+``` r
+processed %>% 
   filter(Country%in%c("China","italy"), area!="hubei") %>%  
   bind_rows(NYC_reports %>% mutate(Country = "NYC")) %>% 
   arrange(desc(Country)) %>% 
@@ -116,7 +137,7 @@ processed %>%
        , caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
 library(DT)
@@ -124,7 +145,7 @@ NYC_reports %>%
   datatable(options = list(paging = F, searching = F))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 # US States
 
@@ -202,7 +223,7 @@ processed %>%
   geom_line()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 # US
 
