@@ -312,7 +312,7 @@ processed %>%
 ```
 
 
-# New York
+# New York State
 
 ```{r NYC}
 
@@ -327,7 +327,7 @@ processed %>%
 
 # MODELING
 
-```{r modeling}
+```{r modeling, eval=FALSE, include=F}
 
 library(modelr)
 

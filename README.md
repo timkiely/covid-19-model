@@ -30,7 +30,7 @@ cases_data <- suppressMessages(read_csv(latest_file))
 message("Data from ", min(cases_data$datetime)," to ",max(cases_data$datetime))
 ```
 
-    ## Data from 2020-01-21 to 2020-03-23
+    ## Data from 2020-01-21 to 2020-03-24
 
 ``` r
 max_date <- 
@@ -54,13 +54,13 @@ ny_cases <-
 message("Number of confirmed NY cases as of ",max_date,": ", ny_cases$Confirmed,"\n")
 ```
 
-    ## Number of confirmed NY cases as of 2020-03-23: 20875
+    ## Number of confirmed NY cases as of 2020-03-24: 21787
 
 ``` r
 message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 ```
 
-    ## Number of active NY cases as of 2020-03-23: 20718
+    ## Number of active NY cases as of 2020-03-24: 21630
 
 # Process case data
 
@@ -72,8 +72,37 @@ source("04 - Process Case Data.R")
 
 ``` r
 source("00 - Recording NYC Cases.R")
+```
 
+    ## # A tibble: 24 x 3
+    ##    Var                value percent
+    ##    <chr>              <chr>   <dbl>
+    ##  1 Total              14776      NA
+    ##  2 Median Age (Range) 45          0
+    ##  3 Age Group          <NA>       NA
+    ##  4 -  0 to 17         374         3
+    ##  5 -  18 to 44        6786       46
+    ##  6 -  45 to 64        4906       33
+    ##  7 -  65 to 74        1591       11
+    ##  8 -  75 and over     1109        8
+    ##  9 -  Unknown         10         NA
+    ## 10 Age 50 and over    <NA>       NA
+    ## 11 -  Yes             6341       43
+    ## 12 -  No              8425       57
+    ## 13 Sex                <NA>       NA
+    ## 14 -  Female          6374       43
+    ## 15 -  Male            8379       57
+    ## 16 -  Unknown         23         NA
+    ## 17 Borough            <NA>       NA
+    ## 18 -  Bronx           2328       16
+    ## 19 -  Brooklyn        4237       29
+    ## 20 -  Manhattan       2887       20
+    ## 21 -  Queens          4364       30
+    ## 22 -  Staten Island   953         6
+    ## 23 -  Unknown         7          NA
+    ## 24 Deaths             131        NA
 
+``` r
 processed %>% 
   filter(Country%in%c("China","italy"), area!="hubei") %>%  
   bind_rows(NYC_reports %>% mutate(Country = "NYC")) %>% 
@@ -155,7 +184,7 @@ processed %>%
   group_by(area) %>% 
   filter(Confirmed>20) %>% 
   mutate(days_since_reported = 1:n()) %>% 
-   mutate(label = if_else(days_since_reported == max(days_since_reported) & Confirmed>100
+   mutate(label = if_else(days_since_reported == max(days_since_reported) & Confirmed>1000
                          , as.character(area), NA_character_)) %>%
   ggplot()+
   aes(x = days_since_reported, y = Confirmed, color = area)+
@@ -164,6 +193,7 @@ processed %>%
                    nudge_x = 1,
                    na.rm = TRUE) +
   theme_tq()+
+  theme(legend.position = "none")+
   scale_color_tq(theme = "light")+
   labs(x = "Days since reaching 20 cases"
        , y = "Confirmed Cases")
@@ -285,7 +315,7 @@ processed %>%
 
 ![](README_files/figure-gfm/Western%20Countries%20log-1.png)<!-- -->
 
-# New York
+# New York State
 
 ``` r
 processed %>% 
@@ -298,100 +328,3 @@ processed %>%
 ![](README_files/figure-gfm/NYC-1.png)<!-- -->
 
 # MODELING
-
-``` r
-library(modelr)
-
-not_na_processed <- 
-  processed %>% 
-  mutate(Country = as.factor(Country)) %>% 
-  filter(!is.na(days_since_reported)) %>% 
-  group_by(area) %>% 
-  filter(Active>20) %>% 
-  mutate(days_since_reported = 1:n()) %>% 
-  ungroup() %>% 
-  select(-c(first_reported, cases, Confirmed:Deaths)) 
-
-country_model <- function(data){
-  loess(Active~days_since_reported
-        , data = data
-        #, control = loess.control(surface = "direct")
-  )    
-}
-
-model_all <- not_na_processed %>% country_model()
-
-model_western <- not_na_processed %>% 
-  filter(Country%in% c("US","canada","france","australia","germany","israel")) %>% 
-  country_model()
-
-model_us_states <- not_na_processed %>% 
-  filter(area %in% us_state_names) %>% 
-  country_model()
-
-model_japan <- not_na_processed %>% 
-  filter(area=='japan') %>% 
-  country_model()
-
-model_italy <- not_na_processed %>% 
-  filter(area=='italy') %>% 
-  country_model()
-
-model_china_ex_wuhan <- not_na_processed %>% 
-  filter(Country=='China', area != "hubei") %>% 
-  country_model()
-
-model_france <- not_na_processed %>% 
-  filter(Country=='france') %>% 
-  country_model()
-
-model_germany <- not_na_processed %>% 
-  filter(Country=='germany') %>% 
-  country_model()
-
-
-actual_nyc <- 
-  not_na_processed %>% 
-  filter(area=="new york") %>% 
-  filter(days_since_reported>0) %>% 
-  select(days_since_reported, "Actual Active" = Active) %>% 
-  mutate(model = "Actual Active") 
-
-max_days <- actual_nyc %>% 
-  summarise(days = max(days_since_reported)) %>% 
-  pull(days)
-
-
-
-not_na_processed %>% 
-  group_by(area) %>% 
-  filter(Active>20) %>% 
-  mutate(days_since_reported = 1:n()) %>% 
-  ungroup() %>% 
-  data_grid(area, days_since_reported) %>% 
-  filter(area=="new york") %>% 
-  
-  
-  add_predictions(model_all, var = "world model") %>%
-  add_predictions(model_japan, var = "japan model") %>%
-  add_predictions(model_china_ex_wuhan, var = "china model") %>%
-  add_predictions(model_france, var = "france model") %>%
-  add_predictions(model_germany, var = "germany model") %>%
-  
-  
-  
-  gather(model, prediction, -area, -days_since_reported) %>% 
-  ggplot()+
-  aes(days_since_reported, y = prediction, color = model)+
-  geom_line(size = 1)+
-  geom_line(data = actual_nyc, aes(y = `Actual Active`), linetype = 1, size = 2)+
-  geom_vline(xintercept = max_days, color = "black", size = 1)+
-  theme_tq()+
-  scale_color_tq()+
-  labs(title = "New York City Active Case Scenarios"
-       , subtitle = "black line denotes NYC actual days since reported"
-       , y = "Predicted Active Cases"
-       , x = "Days since reacihng 20 reported cases")
-```
-
-![](README_files/figure-gfm/modeling-1.png)<!-- -->

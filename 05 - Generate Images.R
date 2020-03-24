@@ -216,7 +216,7 @@ nyc_western_countries
 dev.off()
 
 
-# NYC vs. italy spain countires ----
+# 7.0 NYC vs. italy spain countires ----
 
 
 nyc_vs_hubei <- 
@@ -256,31 +256,67 @@ dev.off()
 
 
 
-
-processed %>% 
-  filter(area%in% c("us","canada","france","australia"
-                    ,"germany","israel","uk","greece","spain")) %>% 
-  group_by(area) %>% 
-  filter(Confirmed>20) %>% 
-  mutate(days_since_reported = 1:n()) %>% 
-  mutate(label = if_else(days_since_reported == max(days_since_reported) 
-                         , as.character(area), NA_character_)) %>%
+# 8.0 China Resurgence ----
+chinese_provinces <- 
+  processed %>% 
+  filter(Country=="China", area!="hubei") %>% 
   ggplot()+
-  aes(x = days_since_reported, y = Active, color = area)+
+  aes(x = days_since_reported, y = Active, group = area, label = area, color = Country)+
   geom_line()+
-  geom_label_repel(aes(label = label),
-                   nudge_x = 1,
-                   na.rm = TRUE) +
   theme_tq()+
   scale_color_tq()+
-  labs(x = "Days since reaching 20 cases"
-       , y = "Active Cases")
+  theme(legend.position = "none", plot.title.position = "plot")+
+  labs(x = "Days Since First Reported"
+       , y = "Active Cases"
+       , title = "China Provinces Ex-Wuhan")
 
-jpeg(paste0('img/covid-NYC-majors-first-20-days-',Sys.Date(),'.jpeg')
+jpeg(paste0('img/chinese-provinces-',Sys.Date(),'.jpeg')
      , width = 480*2
      , height = 480*2
      , res = 200
 )
-nyc_first_20_days
+chinese_provinces
 dev.off()
+
+
+
+# 9.0 Passing Wuhan ----
+
+all_china_cases <- 
+  processed %>% 
+  filter(Country =="China") %>% 
+  group_by(Country, datetime) %>% 
+  summarise_at(vars(Confirmed:Active), sum, na.rm = T) %>% 
+  ungroup()
+
+passing_wuhan <- 
+  processed %>% 
+  filter(area %in% c("italy","us","spain","france","iran","south korea","uk")) %>% 
+  bind_rows(NYC_reports %>% mutate(area = "NYC") %>% mutate(Active = Confirmed)) %>% 
+  bind_rows(all_china_cases %>% mutate(area = "China")) %>% 
+  filter(Active>20) %>% 
+  group_by(area) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  mutate(label = ifelse(days_since_reported==max(days_since_reported) & 
+                          Active>2000, area, NA_character_)) %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Active, group = area, label = area, color = area)+
+  geom_line()+
+  
+  geom_label_repel(aes(label = label), nudge_x = 0.5, segment.alpha = 0.5)+
+  ggthemes::scale_color_economist()+
+  theme_tq()+
+  theme(plot.title.position = "plot", legend.position = "none")+
+  labs(title = paste0("Active Cases ",format(Sys.Date(), '%Y-%m-%d'))
+       , x = "days since reacing 20 active cases")
+
+
+jpeg(paste0('img/us-passing-wuhan-',Sys.Date(),'.jpeg')
+     , width = 480*2
+     , height = 480*2
+     , res = 200
+)
+passing_wuhan
+dev.off()
+
 
