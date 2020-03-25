@@ -54,13 +54,13 @@ ny_cases <-
 message("Number of confirmed NY cases as of ",max_date,": ", ny_cases$Confirmed,"\n")
 ```
 
-    ## Number of confirmed NY cases as of 2020-03-24: 21787
+    ## Number of confirmed NY cases as of 2020-03-24: 25665
 
 ``` r
 message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 ```
 
-    ## Number of active NY cases as of 2020-03-24: 21630
+    ## Number of active NY cases as of 2020-03-24: 25455
 
 # Process case data
 
@@ -77,30 +77,30 @@ source("00 - Recording NYC Cases.R")
     ## # A tibble: 24 x 3
     ##    Var                value percent
     ##    <chr>              <chr>   <dbl>
-    ##  1 Total              14776      NA
-    ##  2 Median Age (Range) 45          0
+    ##  1 Total              15597      NA
+    ##  2 Median Age (Range) 46          0
     ##  3 Age Group          <NA>       NA
-    ##  4 -  0 to 17         374         3
-    ##  5 -  18 to 44        6786       46
-    ##  6 -  45 to 64        4906       33
-    ##  7 -  65 to 74        1591       11
-    ##  8 -  75 and over     1109        8
-    ##  9 -  Unknown         10         NA
+    ##  4 -  0 to 17         384         2
+    ##  5 -  18 to 44        7094       46
+    ##  6 -  45 to 64        5194       33
+    ##  7 -  65 to 74        1689       11
+    ##  8 -  75 and over     1227        8
+    ##  9 -  Unknown         9          NA
     ## 10 Age 50 and over    <NA>       NA
-    ## 11 -  Yes             6341       43
-    ## 12 -  No              8425       57
+    ## 11 -  Yes             6787       44
+    ## 12 -  No              8801       56
     ## 13 Sex                <NA>       NA
-    ## 14 -  Female          6374       43
-    ## 15 -  Male            8379       57
+    ## 14 -  Female          6736       43
+    ## 15 -  Male            8838       57
     ## 16 -  Unknown         23         NA
     ## 17 Borough            <NA>       NA
-    ## 18 -  Bronx           2328       16
-    ## 19 -  Brooklyn        4237       29
-    ## 20 -  Manhattan       2887       20
-    ## 21 -  Queens          4364       30
-    ## 22 -  Staten Island   953         6
-    ## 23 -  Unknown         7          NA
-    ## 24 Deaths             131        NA
+    ## 18 -  Bronx           2505       16
+    ## 19 -  Brooklyn        4407       28
+    ## 20 -  Manhattan       3013       19
+    ## 21 -  Queens          4667       30
+    ## 22 -  Staten Island   999         6
+    ## 23 -  Unknown         6          NA
+    ## 24 Deaths             192        NA
 
 ``` r
 processed %>% 

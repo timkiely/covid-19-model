@@ -33,6 +33,7 @@ NYC_reports <-
                     , 13, 5151, 29 # Friday 3/20
                     , 17, 12339, 99 # 3/24
                     , 18, 14776, 131 # 3/25
+                    , 19, 15597, 192
                     
     ) 
     , area = "NYC", Country = "US")
@@ -58,7 +59,6 @@ last_file_written <-
 
 latest_file <- suppressMessages(read_csv(paste0("data/nyc-daily-stat-sheets/",last_file_written))) %>% 
   mutate_all(as.character)
-
 
 
 # 3.0 SCRAPE NYC DAILY SHEET ----
@@ -92,6 +92,7 @@ extracted_data <-
   mutate(Date = Sys.Date()) %>%
   select(
     `Date`
+    , `Total`
     , Deaths
     , `Median Age (Range)`
     , `0 to 17`
@@ -111,12 +112,15 @@ extracted_data <-
 
 write_file_path <- paste0('data/nyc-daily-stat-sheets/nyc-daily-covid-stats-extracted-', format(Sys.Date(),"%Y-%m-%d"),".csv")
 
+latest_file <- latest_file %>% mutate(Total = c("14776","15597")) %>% select(Date, Total, everything())
 
 final_data <- 
   bind_rows(latest_file, extracted_data) %>%
   arrange(Date) %>% 
   distinct(Date, .keep_all = T)
   
+
+final_data
 
 if(!file.exists(write_file_path)){
   message("Writing latest file to: ",write_file_path)
