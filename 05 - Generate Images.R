@@ -320,3 +320,86 @@ passing_wuhan
 dev.off()
 
 
+# 10.0 Deaths lagging active cases ----
+processed %>% 
+  select(datetime, area, Confirmed, Active, Deaths) %>% 
+  group_by(area) %>% 
+  filter(some(Confirmed, function(x)x>2000)) %>% 
+  filter(Confirmed>2000) %>% 
+  mutate(days_since_100 = 1:n()) %>% 
+  ggplot()+
+  aes(x = days_since_100, y = Confirmed, group = area)+
+  geom_line()
+  
+
+ccf_data <- 
+  processed %>% 
+  filter(area!="hubei") %>% 
+  select(datetime, area, Confirmed, Active, Deaths) %>% 
+  group_by(area) %>% 
+  filter(some(Confirmed, function(x)x>2000)) %>% 
+  filter(Confirmed>2000) %>% 
+  mutate(days_since_100 = 1:n()) %>% 
+  group_by(days_since_100) %>% 
+  summarise(Confirmed = sum(Confirmed)
+            , Deaths = sum(Deaths)) %>% 
+  mutate(Confirmed_diff = Confirmed-lag(Confirmed,1))
+
+
+ccf_vals_diff <- ccf(diff(ccf_data$Confirmed), ccf_data$Deaths, lag.max = 25)
+ccf_vals <- ccf(ccf_data$Confirmed, ccf_data$Deaths, lag.max = 25)
+
+lags_data <- 
+  tibble(lags = as.numeric(ccf_vals_diff$lag)
+       , change_in_confirmed = as.numeric(ccf_vals_diff$acf)
+       , confirmed = as.numeric(ccf_vals$acf)) %>% 
+  filter(lags<(-5))
+
+change_lag <- lags_data %>% filter(change_in_confirmed==max(change_in_confirmed)) %>% head(1) %>% pull(lags)
+confirmed_lag <- lags_data %>% filter(confirmed==max(confirmed)) %>% head(1) %>% pull(lags)
+
+
+summary(lm(Deaths ~ Confirmed + days_since_100, data = ccf_data))
+lagged_death_model <- lm(Deaths ~ Confirmed + days_since_100+ lag(Confirmed, abs(confirmed_lag))+lag(Confirmed_diff,abs(change_lag)), data = ccf_data)
+summary(lagged_death_model)
+
+library(modelr)
+processed %>% 
+  filter(area!="hubei") %>% 
+  select(datetime, area, Confirmed, Active, Deaths) %>% 
+  group_by(area) %>% 
+  filter(some(Confirmed, function(x)x>2000)) %>% 
+  filter(Confirmed>2000) %>% 
+  mutate(days_since_100 = 1:n()) %>% 
+  mutate(Confirmed_diff = Confirmed-lag(Confirmed,1)) %>% 
+  add_predictions(lagged_death_model) %>%
+  add_residuals(lagged_death_model) %>%
+  filter(!is.na(pred)) %>%
+  ungroup() %>% 
+  select(Deaths, pred) %>% 
+  corrr::correlate()
+  
+
+processed %>% 
+  filter(area!="hubei") %>% 
+  select(datetime, area, Confirmed, Active, Deaths) %>% 
+  group_by(area) %>% 
+  filter(some(Confirmed, function(x)x>2000)) %>% 
+  filter(Confirmed>2000) %>% 
+  mutate(days_since_100 = 1:n()) %>% 
+  mutate(Confirmed_diff = Confirmed-lag(Confirmed,1)) %>% 
+  add_predictions(lagged_death_model) %>%
+  add_residuals(lagged_death_model) %>%
+  filter(!is.na(pred)) %>% 
+  ggplot()+
+  aes(x = days_since_100, y = resid, group = area)+
+  geom_line()
+  
+
+
+
+
+
+
+
+

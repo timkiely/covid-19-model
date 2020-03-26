@@ -34,6 +34,7 @@ NYC_reports <-
                     , 17, 12339, 99 # 3/24
                     , 18, 14776, 131 # 3/25
                     , 19, 15597, 192
+                    , 20, 21873, 281
                     
     ) 
     , area = "NYC", Country = "US")
@@ -112,15 +113,16 @@ extracted_data <-
 
 write_file_path <- paste0('data/nyc-daily-stat-sheets/nyc-daily-covid-stats-extracted-', format(Sys.Date(),"%Y-%m-%d"),".csv")
 
-latest_file <- latest_file %>% mutate(Total = c("14776","15597")) %>% select(Date, Total, everything())
-
 final_data <- 
   bind_rows(latest_file, extracted_data) %>%
   arrange(Date) %>% 
-  distinct(Date, .keep_all = T)
+  distinct(Date, .keep_all = T) %>% 
+  mutate(Rate = scales::percent(as.numeric(Deaths)/as.numeric(Total))) %>% 
+  mutate(`Death Increase` = scales::percent(as.numeric(Deaths)/lag(as.numeric(Deaths),1)-1)) %>% 
+  select(Date, Total, Deaths, Rate, `Death Increase`, everything())
   
 
-final_data
+select(final_data, Date, Total, Deaths, Rate, `Death Increase`)
 
 if(!file.exists(write_file_path)){
   message("Writing latest file to: ",write_file_path)

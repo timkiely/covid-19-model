@@ -131,6 +131,30 @@ processed %>%
 ```
 
 
+```{r}
+
+
+processed %>% 
+  filter(area%in%c("US","italy", "hubei")) %>%  
+  bind_rows(NYC_reports %>% mutate(Country = "NYC")) %>% 
+  group_by(area) %>% 
+  filter(Deaths>10) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  mutate(Deaths = log(Deaths)) %>%
+  ggplot()+
+  aes(x = days_since_reported, y = Deaths, group = area, color = area)+
+  geom_line(size = 2, alpha = 0.6) + 
+  theme_tq()+
+  scale_color_tq()+
+  #scale_y_log10()+
+  theme(legend.position = "bottom")+
+  labs(title = "Covid-19 deaths NYC, Italy, Wuhan"
+       , y = "Deceased, log scale"
+       , x = "Days since reaching 10 reported deaths"
+       , caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
+
+```
+
 
 ```{r}
 
@@ -268,7 +292,7 @@ processed %>%
 ```{r Western Countries}
 
 processed %>% 
-  filter(area%in% c("us","canada","france","australia"
+  filter(area%in% c("us","italy","canada","france","australia"
                     ,"germany","israel","uk","greece","spain")) %>% 
   group_by(area) %>% 
   filter(Confirmed>20) %>% 

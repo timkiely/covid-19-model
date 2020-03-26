@@ -1,5 +1,10 @@
 
 
+cases_data <- 
+  cases_data %>% 
+  rename(us = `united states`
+         , uk = `united kingdom`)
+
 china_names <- 
   cases_data %>% 
   select(anhui:zhejiang) %>% 

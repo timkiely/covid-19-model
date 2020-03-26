@@ -30,7 +30,7 @@ cases_data <- suppressMessages(read_csv(latest_file))
 message("Data from ", min(cases_data$datetime)," to ",max(cases_data$datetime))
 ```
 
-    ## Data from 2020-01-21 to 2020-03-24
+    ## Data from 2020-01-21 to 2020-03-26
 
 ``` r
 max_date <- 
@@ -54,13 +54,13 @@ ny_cases <-
 message("Number of confirmed NY cases as of ",max_date,": ", ny_cases$Confirmed,"\n")
 ```
 
-    ## Number of confirmed NY cases as of 2020-03-24: 25665
+    ## Number of confirmed NY cases as of 2020-03-26: 32741
 
 ``` r
 message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 ```
 
-    ## Number of active NY cases as of 2020-03-24: 25455
+    ## Number of active NY cases as of 2020-03-26: 32407
 
 # Process case data
 
@@ -77,30 +77,30 @@ source("00 - Recording NYC Cases.R")
     ## # A tibble: 24 x 3
     ##    Var                value percent
     ##    <chr>              <chr>   <dbl>
-    ##  1 Total              15597      NA
-    ##  2 Median Age (Range) 46          0
+    ##  1 Total              21873      NA
+    ##  2 Median Age (Range) 47          0
     ##  3 Age Group          <NA>       NA
-    ##  4 -  0 to 17         384         2
-    ##  5 -  18 to 44        7094       46
-    ##  6 -  45 to 64        5194       33
-    ##  7 -  65 to 74        1689       11
-    ##  8 -  75 and over     1227        8
-    ##  9 -  Unknown         9          NA
+    ##  4 -  0 to 17         470         2
+    ##  5 -  18 to 44        9618       44
+    ##  6 -  45 to 64        7445       34
+    ##  7 -  65 to 74        2471       11
+    ##  8 -  75 and over     1826        8
+    ##  9 -  Unknown         43         NA
     ## 10 Age 50 and over    <NA>       NA
-    ## 11 -  Yes             6787       44
-    ## 12 -  No              8801       56
+    ## 11 -  Yes             9863       45
+    ## 12 -  No              11967      55
     ## 13 Sex                <NA>       NA
-    ## 14 -  Female          6736       43
-    ## 15 -  Male            8838       57
-    ## 16 -  Unknown         23         NA
+    ## 14 -  Female          9557       44
+    ## 15 -  Male            12278      56
+    ## 16 -  Unknown         38         NA
     ## 17 Borough            <NA>       NA
-    ## 18 -  Bronx           2505       16
-    ## 19 -  Brooklyn        4407       28
-    ## 20 -  Manhattan       3013       19
-    ## 21 -  Queens          4667       30
-    ## 22 -  Staten Island   999         6
-    ## 23 -  Unknown         6          NA
-    ## 24 Deaths             192        NA
+    ## 18 -  Bronx           3924       18
+    ## 19 -  Brooklyn        5705       26
+    ## 20 -  Manhattan       3907       18
+    ## 21 -  Queens          7026       32
+    ## 22 -  Staten Island   1276        6
+    ## 23 -  Unknown         35         NA
+    ## 24 Deaths             281        NA
 
 ``` r
 processed %>% 
@@ -147,6 +147,29 @@ processed %>%
 
 ``` r
 processed %>% 
+  filter(area%in%c("US","italy", "hubei")) %>%  
+  bind_rows(NYC_reports %>% mutate(Country = "NYC")) %>% 
+  group_by(area) %>% 
+  filter(Deaths>10) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  mutate(Deaths = log(Deaths)) %>%
+  ggplot()+
+  aes(x = days_since_reported, y = Deaths, group = area, color = area)+
+  geom_line(size = 2, alpha = 0.6) + 
+  theme_tq()+
+  scale_color_tq()+
+  #scale_y_log10()+
+  theme(legend.position = "bottom")+
+  labs(title = "Covid-19 deaths NYC, Italy, Wuhan"
+       , y = "Deceased, log scale"
+       , x = "Days since reaching 10 reported deaths"
+       , caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+``` r
+processed %>% 
   filter(Country%in%c("China","italy"), area!="hubei") %>%  
   bind_rows(NYC_reports %>% mutate(Country = "NYC")) %>% 
   arrange(desc(Country)) %>% 
@@ -166,7 +189,7 @@ processed %>%
        , caption = "Source: http://hgis.uw.edu/virus/assets/virus.csv\n NYC data collected by hand")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 library(DT)
@@ -174,7 +197,7 @@ NYC_reports %>%
   datatable(options = list(paging = F, searching = F))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 # US States
 
@@ -253,7 +276,7 @@ processed %>%
   geom_line()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 # US
 
@@ -271,7 +294,7 @@ processed %>%
 
 ``` r
 processed %>% 
-  filter(area%in% c("us","canada","france","australia"
+  filter(area%in% c("us","italy","canada","france","australia"
                     ,"germany","israel","uk","greece","spain")) %>% 
   group_by(area) %>% 
   filter(Confirmed>20) %>% 
