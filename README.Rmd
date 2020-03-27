@@ -107,6 +107,7 @@ processed %>%
 
 ```
 
+# Deaths
 
 ```{r}
 
@@ -130,6 +131,7 @@ processed %>%
 
 ```
 
+# Log deaths
 
 ```{r}
 
