@@ -12,7 +12,13 @@
 suppressPackageStartupMessages({
   library(tabulizer)
   library(tidyverse)
+  library(pdftools)
 })
+
+CAGR_formula <- function(FV, PV, n = 1) {
+  values <- ((FV/PV)^(1/n)-1)
+  return(values)
+}
 
 
 
@@ -33,11 +39,23 @@ NYC_reports <-
                     , 13, 5151, 29 # Friday 3/20
                     , 17, 12339, 99 # 3/24
                     , 18, 14776, 131 # 3/25
-                    , 19, 15597, 192
-                    , 20, 21873, 281
+                    , 19, 15597, 192 # 3/26
+                    , 20, 21873, 281 # 3/27
+                    , 22, 33474, 776 # 3/29
+                    , 24, 40900, 932 # 3/31
                     
     ) 
     , area = "NYC", Country = "US")
+
+
+
+NYC_reports <- 
+  NYC_reports %>% 
+  mutate(days_elapsed = replace_na(as.numeric(days_since_reported - lag(days_since_reported, 1)),1)) %>% 
+  mutate(`Mortality Rate` = as.numeric(Deaths)/as.numeric(Confirmed)) %>% 
+  mutate(`Death CAGR` = CAGR_formula(as.numeric(Deaths), lag(as.numeric(Deaths),1), n = days_elapsed)) %>% 
+  mutate(`Case CAGR` = CAGR_formula(as.numeric(Confirmed), lag(as.numeric(Confirmed),1), n = days_elapsed)) %>% 
+  select(days_since_reported, days_elapsed, Confirmed, `Case CAGR`, Deaths, `Death CAGR`, `Mortality Rate`, everything())
 
 
 latest_manual_recording <- NYC_reports %>% filter(days_since_reported==max(days_since_reported))
@@ -70,6 +88,20 @@ daily_stat_sheet <- "https://www1.nyc.gov/assets/doh/downloads/pdf/imm/covid-19-
 # Extract the table
 out <- extract_tables(daily_stat_sheet)
 
+# extract the pdf text
+report_date <- 
+  pdf_text(daily_stat_sheet) %>% 
+  readr::read_lines() %>% 
+  enframe() %>% 
+  filter(str_detect(value, "reflect events and activities as of")) %>% 
+  mutate(value = str_squish(str_remove_all(value, "The data in this report reflect events and activities as of | at*|[.]|[0-9]+:[0-9]+|PM|AM"))) %>% 
+  mutate(value = as.Date(value, "%B %d, %Y")) %>% 
+  distinct(value) %>% 
+  pull(value)
+
+
+if(is.na(report_date)) stop("REPORT DATE FAILED TO PARSE")
+
 
 # parse table
 parsed_table <- 
@@ -90,7 +122,7 @@ extracted_data <-
   select(-percent) %>%
   mutate(Var = readr::parse_character(str_remove_all(Var, "-"))) %>% 
   spread(Var, value) %>% 
-  mutate(Date = Sys.Date()) %>%
+  mutate(Date = report_date) %>%
   select(
     `Date`
     , `Total`
@@ -113,16 +145,26 @@ extracted_data <-
 
 write_file_path <- paste0('data/nyc-daily-stat-sheets/nyc-daily-covid-stats-extracted-', format(Sys.Date(),"%Y-%m-%d"),".csv")
 
+
+
+CAGR_formula <- function(FV, PV, n = 1) {
+  values <- ((FV/PV)^(1/n)-1)
+  return(values)
+}
+
 final_data <- 
   bind_rows(latest_file, extracted_data) %>%
   arrange(Date) %>% 
   distinct(Date, .keep_all = T) %>% 
-  mutate(Rate = scales::percent(as.numeric(Deaths)/as.numeric(Total))) %>% 
-  mutate(`Death Increase` = scales::percent(as.numeric(Deaths)/lag(as.numeric(Deaths),1)-1)) %>% 
-  select(Date, Total, Deaths, Rate, `Death Increase`, everything())
+  mutate(Date = as.Date(Date)) %>% 
+  mutate(days_elapsed = replace_na(as.numeric(Date - lag(Date, 1)),1)) %>% 
+  mutate(`Mortality Rate` = scales::percent(as.numeric(Deaths)/as.numeric(Total))) %>% 
+  mutate(`Death CAGR` = scales::percent(CAGR_formula(as.numeric(Deaths), lag(as.numeric(Deaths),1), n = days_elapsed))) %>% 
+  mutate(`Case CAGR` = scales::percent(CAGR_formula(as.numeric(Total), lag(as.numeric(Total),1), n = days_elapsed))) %>% 
+  select(Date, days_elapsed, Total, `Case CAGR`, Deaths, `Death CAGR`, `Mortality Rate`, everything())
   
 
-select(final_data, Date, Total, Deaths, Rate, `Death Increase`)
+select(final_data, Date, days_elapsed, Total, `Case CAGR`, Deaths, `Death CAGR`, `Mortality Rate`)
 
 if(!file.exists(write_file_path)){
   message("Writing latest file to: ",write_file_path)

@@ -398,7 +398,53 @@ processed %>%
 
 
 
+# 11.0 Percent Increases NYC ----
 
+hubei_growth_rate <- 
+  processed %>% 
+  filter(area=="hubei") %>% 
+  select(area, datetime, Deaths) %>% 
+  mutate(`Wuhan Deaths` = CAGR_formula(Deaths, lag(Deaths,1))) %>% 
+  mutate(days_since_reported = 1:n()+14)
+
+NYC_reports %>% 
+  bind_rows(hubei_growth_rate) %>% 
+  select(days_since_reported
+         , "NYC Deaths" = `Death CAGR`
+         , `Wuhan Deaths`) %>% 
+  gather(Var, Value, -days_since_reported) %>% 
+  na.omit() %>% 
+  filter(is.finite(Value)) %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Value, fill = Var)+
+  geom_col(position = "dodge")+
+  scale_fill_tq()+
+  scale_y_continuous(labels = scales::percent)+
+  coord_cartesian(ylim = c(0,1))+
+  theme(plot.title.position = "plot")+
+  labs(x = "Days elapsed"
+       , y = "Growth rate"
+       , fill = NULL
+       , title = "NYC Covid-19 Daily Growth Rates")
+
+
+# 12.0 Mortaility rate over time ----
+
+mortality_rate_over_time <- 
+  processed %>% 
+  mutate(`Mortality Rate` = Deaths/Confirmed) %>% 
+  group_by(area) %>% 
+  filter(some(Deaths,function(x)x>100))%>% 
+  filter(Deaths>20) %>% 
+  mutate(Days = 1:n()) %>% 
+  ggplot()+
+  aes(x=Days, y = `Mortality Rate` , color = area)+
+  geom_line()+
+  theme_tq()+
+  scale_color_tq()+
+  scale_y_continuous(labels = scales::percent)+
+  theme(plot.title.position = "plot")+
+  labs(x = "Days since reaching 20 deaths")
 
 
 
