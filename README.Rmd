@@ -74,7 +74,7 @@ message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 # Process case data
 
 ```{r}
-
+source("00 - Recording NYC Cases.R")
 source("04 - Process Case Data.R")
 
 processed <- 
@@ -86,6 +86,10 @@ processed <-
 # NYC Cases and Deaths
 
 ```{r}
+
+
+
+
 NYC_reports %>% 
   select(days_since_reported, Confirmed, Deaths) %>% 
   gather(Var, Value, -days_since_reported) %>% 
@@ -119,6 +123,28 @@ processed %>%
 
 ```
 
+
+
+# Itlay cases and deaths
+
+```{r}
+
+processed %>% 
+  filter(area == "hubei") %>% 
+  filter(Confirmed>100) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  select(days_since_reported, Confirmed, Deaths) %>% 
+  mutate(Confirmed = c(NA,diff(Confirmed))
+         , Deaths = c(NA,diff(Deaths))) %>% 
+  gather(Var, Value, -days_since_reported) %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Value, fill = Var)+
+  geom_col(position = "dodge")+
+  geom_smooth(se = F)+
+  facet_wrap(~Var, scales = "free_y", ncol = 1)+
+  theme_tq()
+
+```
 
 
 # NYC cases vs. advanced scenarios: Italy and Chinese provinces
