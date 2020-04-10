@@ -231,4 +231,45 @@ testing_plot_us_v_korea
 dev.off()
 
 
+# hospitalizations vs. confirmed cases ----
+
+diff_metric <- function(x) c(NA, diff(x))
+
+covid_tracking_data %>% 
+  group_by(date) %>% 
+  summarise(hospitalizedCumulative = sum(hospitalizedCumulative, na.rm = T)
+            , inIcuCumulative = sum(inIcuCumulative, na.rm = T)
+            , death  = sum(death , na.rm = T)) %>% 
+  gather(Var, Value, -date) %>% 
+  filter(date>ymd("2020 03 15")) %>% 
+  ggplot()+
+  aes(x = date, y = Value)+
+  geom_line()+
+  facet_wrap(~Var, scales = "free_y", ncol = 1)
+
+
+covid_tracking_data %>% 
+  group_by(date) %>% 
+  summarise_at(vars(hospitalizedCumulative, inIcuCurrently, death), sum, na.rm = T) %>% 
+  mutate_at(vars("New Hospitalizations" = hospitalizedCumulative
+                 , "New ICU Admissions" = inIcuCurrently
+                 , "New Deaths" = death), diff_metric) %>% 
+  select(date, `New Hospitalizations`, `New ICU Admissions`, `New Deaths`) %>% 
+  gather(Var, Value, -date) %>% 
+  mutate(Var = factor(Var, c("New Hospitalizations","New ICU Admissions","New Deaths"))) %>% 
+  filter(date>ymd("2020 03 15")) %>% 
+  ggplot()+
+  aes(x = date, y = Value, fill = Var)+
+  geom_col()+
+  theme(legend.position = "none")+
+  facet_wrap(~Var, scales = "free_y", ncol = 1)+
+  labs(y = NULL, x = NULL)
+
+
+
+
+
+
+
+
 

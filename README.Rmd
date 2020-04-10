@@ -436,7 +436,7 @@ processed %>%
 
 processed %>% 
   filter(area%in% c("us","italy","canada","france","australia"
-                    ,"germany","israel","uk","greece","spain")) %>% 
+                    ,"germany","israel","uk","greece","spain", "china")) %>% 
   group_by(area) %>% 
   filter(Confirmed>20) %>% 
   mutate(days_since_reported = 1:n()) %>% 

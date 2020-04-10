@@ -447,7 +447,7 @@ mortality_rate_over_time <-
   labs(x = "Days since reaching 20 deaths")
 
 
-# 13.0 Cases per 1 million ----
+# 13.1 Cases per 1 million ----
 
 populations_2015 <- 
   read_csv("data/UN-population-projection-medium-variant.csv") %>% 
@@ -496,7 +496,7 @@ active_per_1_million
 dev.off()
 
 
-# 14.0 Cases per 1 million pt2 ----
+# 13.2 Cases per 1 million pt2 ----
 
 populations_2015 <- 
   read_csv("data/UN-population-projection-medium-variant.csv") %>% 
@@ -541,3 +541,47 @@ jpeg(paste0('img/active-per-1-million',Sys.Date(),'.jpeg')
 )
 active_per_1_million_2
 dev.off()
+
+
+
+# 14.0 US Flattening? ----
+
+processed %>% 
+  filter(area%in% c("us","italy","canada","france","australia"
+                    ,"germany","israel","uk","greece","spain", "hubei")) %>% 
+  group_by(area) %>% 
+  filter(Confirmed>20) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  mutate(label = if_else(days_since_reported == max(days_since_reported) 
+                         , as.character(area), NA_character_)) %>%
+  ggplot()+
+  aes(x = days_since_reported, y = Active, color = area)+
+  geom_line()+
+  geom_label_repel(aes(label = label),
+                   nudge_x = 1,
+                   na.rm = TRUE) +
+  theme_tq()+
+  scale_color_tq()+
+  labs(x = "Days since reaching 20 cases"
+       , y = "Active Cases")
+
+processed %>% 
+  filter(area%in% c("us")) %>% 
+  group_by(area) %>% 
+  filter(Confirmed>20) %>% 
+  mutate(days_since_reported = 1:n()) %>% 
+  mutate(label = if_else(days_since_reported == max(days_since_reported) 
+                         , as.character(area), NA_character_)) %>%
+  select(datetime, area, Confirmed) %>% 
+  mutate(New_Cases = c(NA, diff(Confirmed))) %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = New_Cases, color = area)+
+  geom_line()+
+  geom_label_repel(aes(label = label),
+                   nudge_x = 1,
+                   na.rm = TRUE) +
+  theme_tq()+
+  scale_color_tq()+
+  labs(x = "Days since reaching 20 cases"
+       , y = "Active Cases")
+
