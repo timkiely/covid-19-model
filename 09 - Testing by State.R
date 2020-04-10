@@ -162,6 +162,7 @@ positive_rate_av <-
   mutate(daily_tests = c(NA, diff(total_tests))
          , daily_positives = c(NA, diff(positive))) %>% 
   mutate(positive_rate = daily_positives/daily_tests) %>% 
+  filter(is.finite(positive_rate), !is.na(positive_rate)) %>% 
   ungroup() %>% 
   summarise(positive_rate = mean(positive_rate, na.rm = T))
 
@@ -180,6 +181,8 @@ positive_rate <-
   mutate(daily_tests = c(NA, diff(total_tests))
          , daily_positives = c(NA, diff(positive))) %>% 
   mutate(positive_rate = daily_positives/daily_tests) %>% 
+  filter(is.finite(positive_rate), !is.na(positive_rate)) %>% 
+  filter(positive_rate<1) %>% 
   
   mutate(korean_label = ifelse(date==max(date),"5% threshold", NA)) %>% 
   mutate(current_label = ifelse(date==max(date),"US Average", NA)) %>% 

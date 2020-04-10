@@ -495,3 +495,49 @@ jpeg(paste0('img/active-per-1-million',Sys.Date(),'.jpeg')
 active_per_1_million
 dev.off()
 
+
+# 14.0 Cases per 1 million pt2 ----
+
+populations_2015 <- 
+  read_csv("data/UN-population-projection-medium-variant.csv") %>% 
+  filter(Year==2015) %>% 
+  select(Entity, "Population" = `Estimates, 1950 - 2015: Total population by broad age group, both sexes combined (thousands) - Total`) %>% 
+  mutate(Population_1M = Population/1000000) %>% 
+  mutate(Entity = str_to_lower(Entity)) %>% 
+  mutate(Entity = case_when(
+    Entity == "united states" ~ "us"
+    , TRUE ~ Entity
+  ))
+
+active_per_1_million_2 <- 
+  processed %>% 
+  filter(Country!="Other") %>% 
+  filter(Active>500) %>% 
+  group_by(area) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  mutate(label = ifelse(days_since_reported==max(days_since_reported) #& Active>2000
+                        , area, NA_character_)) %>% 
+  inner_join(populations_2015, by = c(area = "Entity")) %>% 
+  mutate(Active_per_1M_people = Active / Population_1M) %>% 
+  ggplot()+
+  aes(x = days_since_reported
+      , y = Active_per_1M_people
+      , group = area, label = area, color = area)+
+  geom_line()+
+  geom_text(aes(label = label))+
+  scale_color_tq()+
+  theme_tq()+
+  theme(legend.position = "none")+
+  theme(plot.title.position = "plot")+
+  labs(title = "Active Cases Per 1 Million People"
+       , x = "days since reacing 500 active cases"
+       , y = "Active cases per 1 million people")
+
+
+jpeg(paste0('img/active-per-1-million',Sys.Date(),'.jpeg')
+     , width = 480*2
+     , height = 480*2
+     , res = 200
+)
+active_per_1_million_2
+dev.off()

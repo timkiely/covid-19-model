@@ -39,6 +39,7 @@ spain_names <- cases_data %>% select(spain) %>% names()
 processed <-
   cases_data %>% 
   gather(area, cases, -datetime) %>% 
+  #filter(area=='new york', !is.na(cases)) %>% 
   separate(cases, into = c("Confirmed","Suspected","Cured","Deaths")
            , sep = "-", extra = "warn", remove = F) %>% 
   mutate_at(vars(Confirmed:Deaths), function(x)ifelse(is.na(x),0,x)) %>% 

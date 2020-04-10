@@ -59,6 +59,7 @@ cumulative <- function(x) cumsum(as.numeric(x))
 
 nyc_daily_data <- 
   read_csv("https://raw.githubusercontent.com/nychealth/coronavirus-data/master/case-hosp-death.csv") %>% 
+  mutate(DEATH_COUNT= ifelse(is.na(DEATH_COUNT), 0, DEATH_COUNT)) %>% 
   mutate_at(vars(NEW_COVID_CASE_COUNT:DEATH_COUNT), lst(identity, cumulative)) %>% 
   select(-contains("identity"))
 
@@ -66,7 +67,8 @@ NYC_reports <-
   nyc_daily_data %>% 
   mutate(`Mortality Rate` = as.numeric(DEATH_COUNT_cumulative)/as.numeric(NEW_COVID_CASE_COUNT_cumulative)) %>% 
   mutate(`Death Percent Increase` = DEATH_COUNT_cumulative/lag(DEATH_COUNT_cumulative,1)-1) %>% 
-  mutate(`Case Percent Increase` = NEW_COVID_CASE_COUNT_cumulative/lag(NEW_COVID_CASE_COUNT_cumulative,1)-1)
+  mutate(`Case Percent Increase` = NEW_COVID_CASE_COUNT_cumulative/lag(NEW_COVID_CASE_COUNT_cumulative,1)-1) %>% 
+  mutate(DATE_OF_INTEREST = mdy(DATE_OF_INTEREST))
 
 # 3.0 SCRAPE NYC DAILY SHEET ----
 daily_stat_sheet <- "https://www1.nyc.gov/assets/doh/downloads/pdf/imm/covid-19-daily-data-summary.pdf"

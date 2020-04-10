@@ -73,34 +73,65 @@ message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 
 # Process case data
 
-```{r}
+```{r message=FALSE, warning=FALSE}
+
 source("00 - Recording NYC Cases.R")
 source("04 - Process Case Data.R")
 
-processed <- 
-  processed %>% 
-  mutate(datetime = mdy(datetime))
+```
+
+
+# NY State Cases and Deaths 
+
+```{r}
+processed %>% 
+  filter(area=="new york", !is.na(cases)) %>% 
+  select(datetime,Confirmed,Deaths) %>% 
+  mutate(Confirmed = c(NA, diff(Confirmed))
+         , Deaths = c(NA, diff(Deaths))
+         ) %>% 
+  gather(Var, Value, -datetime) %>% 
+  ggplot()+
+  aes(x = datetime, y = Value, group = Var)+
+  geom_col()+
+  facet_wrap(~Var, ncol = 1, scales = "free_y")+
+  theme_tq()
 
 ```
+
 
 # NYC Cases and Deaths
 
 ```{r}
 
-
-
-
 NYC_reports %>% 
-  select(days_since_reported, Confirmed, Deaths) %>% 
-  gather(Var, Value, -days_since_reported) %>% 
+  select(DATE_OF_INTEREST, NEW_COVID_CASE_COUNT, DEATH_COUNT) %>% 
+  gather(Var, Value, -DATE_OF_INTEREST) %>% 
   ggplot()+
-  aes(x = days_since_reported, y = Value, fill = Var)+
+  aes(x = DATE_OF_INTEREST, y = Value, fill = Var)+
   geom_col(position = "dodge")+
   geom_smooth(se = F)+
   facet_wrap(~Var, scales = "free_y", ncol = 1)+
   theme_tq()
+
 ```
 
+
+```{r}
+
+NYC_reports %>% 
+  select(DATE_OF_INTEREST
+         , NEW_COVID_CASE_COUNT_cumulative
+         , DEATH_COUNT_cumulative) %>% 
+  gather(Var, Value, -DATE_OF_INTEREST) %>% 
+  ggplot()+
+  aes(x = DATE_OF_INTEREST, y = Value, fill = Var)+
+  geom_col(position = "dodge")+
+  geom_smooth(se = F)+
+  facet_wrap(~Var, scales = "free_y", ncol = 1)+
+  theme_tq()
+
+```
 
 # Itlay cases and deaths
 
@@ -125,7 +156,7 @@ processed %>%
 
 
 
-# Itlay cases and deaths
+# Wuhan cases and deaths
 
 ```{r}
 
@@ -347,7 +378,7 @@ populations_2015 <-
 
 processed %>% 
   filter(Country!="Other") %>% 
-  filter(Active>20) %>% 
+  filter(Active>500) %>% 
   group_by(area) %>% 
   mutate(days_since_reported=1:n()) %>% 
   mutate(label = ifelse(days_since_reported==max(days_since_reported) #& Active>2000
@@ -365,7 +396,7 @@ processed %>%
   theme(legend.position = "none")+
   theme(plot.title.position = "plot")+
   labs(title = "Active Cases Per 1 Million People"
-       , x = "days since reacing 20 active cases"
+       , x = "days since reacing 500 active cases"
        , y = "Active cases per 1 million people")
 
 
