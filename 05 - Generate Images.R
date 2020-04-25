@@ -585,3 +585,64 @@ processed %>%
   labs(x = "Days since reaching 20 cases"
        , y = "Active Cases")
 
+
+# 15.0 Deaths Per Million ----
+
+# 13.2 Cases per 1 million pt2 ----
+
+populations_2015 <- 
+  read_csv("data/UN-population-projection-medium-variant.csv") %>% 
+  filter(Year==2015) %>% 
+  select(Entity, "Population" = `Estimates, 1950 - 2015: Total population by broad age group, both sexes combined (thousands) - Total`) %>% 
+  mutate(Population_1M = Population/1000000) %>% 
+  mutate(Entity = str_to_lower(Entity)) %>% 
+  mutate(Entity = case_when(
+    Entity == "united states" ~ "us"
+    , TRUE ~ Entity
+  ))
+
+
+ max_days <- 
+  processed %>% 
+  #filter(Country!="Other") %>% 
+  filter(Deaths>100) %>% 
+  group_by(area) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  ungroup() %>% 
+  summarise(days_since_reported = max(days_since_reported))
+
+deaths_per_1_million <- 
+  processed %>% 
+  #filter(Country!="Other") %>% 
+  filter(Deaths>100) %>% 
+  group_by(area) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  mutate(label = ifelse(days_since_reported==max(days_since_reported) & Deaths>1000
+                        , paste0(area," ",scales::comma(round(Deaths/1000,2)),"K Deaths"), NA_character_)) %>%
+  inner_join(populations_2015, by = c(area = "Entity")) %>% 
+  mutate(Deaths_per_1M_people = Deaths / Population_1M) %>% 
+  ggplot()+
+  aes(x = days_since_reported
+      , y = Deaths_per_1M_people
+      , group = area, label = area, color = area)+
+  geom_line()+
+  geom_text(aes(label = label))+
+  scale_color_tq()+
+  theme_tq()+
+  theme(legend.position = "none")+
+  theme(plot.title.position = "plot")+
+  labs(title = "Deaths Per 1 Million People"
+       , subtitle = Sys.Date()
+       , x = "days since reacing 100 deaths"
+       , y = "Deaths per 1 million people")
+
+
+deaths_per_1_million
+
+jpeg(paste0('img/deaths-per-1-million',Sys.Date(),'.jpeg')
+     , width = 480*2
+     , height = 480*2
+     , res = 200
+)
+deaths_per_1_million
+dev.off()

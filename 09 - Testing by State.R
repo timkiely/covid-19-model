@@ -122,6 +122,17 @@ s_korea_rate_plot <-
 
 
 # US TARGET NEEDS TO BE AROUND 9% MINIMUM
+
+plot_dates <- 
+  covid_tracking_data %>% 
+  group_by(date) %>% 
+  summarise(total_tests = sum(positive+negative, na.rm = T)
+            , positive = sum(positive, na.rm = T)
+  ) %>% 
+  ungroup() %>% 
+  summarise(min_date = min(date)
+            , max_date = max(date))
+
 daily_tests <- 
   covid_tracking_data %>% 
   group_by(date) %>% 
@@ -141,7 +152,7 @@ daily_tests <-
   ggplot()+
   aes(x = date, y = Value, group = Var, color = Var, label = label)+
   geom_line(size = 2)+
-  ggrepel::geom_label_repel(nudge_x = -10)+
+  ggrepel::geom_label_repel(nudge_y = -100000)+
   theme_tq()+
   theme(legend.position = "none", plot.title.position = "plot")+
   scale_color_tq()+
@@ -151,7 +162,8 @@ daily_tests <-
        , color = NULL
        , title = "US needs to increase testing capacity to reach S. Korean levels"
        , subtitle = "Current Test Results Per Day in US and Gap to Reach Containment Levels"
-       )
+       )+
+  scale_x_date(limits = c(plot_dates$min_date, plot_dates$max_date))
 
 positive_rate_av <-
   covid_tracking_data %>% 
@@ -162,7 +174,8 @@ positive_rate_av <-
   mutate(daily_tests = c(NA, diff(total_tests))
          , daily_positives = c(NA, diff(positive))) %>% 
   mutate(positive_rate = daily_positives/daily_tests) %>% 
-  filter(is.finite(positive_rate), !is.na(positive_rate)) %>% 
+  filter(is.finite(positive_rate), !is.na(positive_rate)) %>%
+  filter(date>Sys.Date()-6) %>% 
   ungroup() %>% 
   summarise(positive_rate = mean(positive_rate, na.rm = T))
 
@@ -185,7 +198,7 @@ positive_rate <-
   filter(positive_rate<1) %>% 
   
   mutate(korean_label = ifelse(date==max(date),"5% threshold", NA)) %>% 
-  mutate(current_label = ifelse(date==max(date),"US Average", NA)) %>% 
+  mutate(current_label = ifelse(date==max(date),paste0("US Last 7 Day Average: ",scales::percent(round(positive_rate_av$positive_rate,2))), NA)) %>% 
   
   ggplot()+
   aes(x = date, y = positive_rate)+
@@ -210,15 +223,15 @@ positive_rate <-
   labs(y = NULL
        , x = NULL
        , subtitletitle = "US Positive Test Rate"
-       )
+       )+
+  scale_x_date(limits = c(plot_dates$min_date, plot_dates$max_date))
 
-# patchwork plot
-testing_plot_us_v_korea <- s_korea_rate_plot + (daily_tests/positive_rate)
-
-
+# PATCHWORK PLOTS
+testing_plot_us_v_korea <- s_korea_rate_plot + (daily_tests /positive_rate)
 testing_plot_us_v_korea
 
-
+daily_us_tests <- (daily_tests /positive_rate )
+daily_us_tests
 
 jpeg(paste0('img/us-tests-vs-korea-',Sys.Date(),'.jpeg')
      , width = 480*2.5
@@ -248,28 +261,55 @@ covid_tracking_data %>%
   facet_wrap(~Var, scales = "free_y", ncol = 1)
 
 
-covid_tracking_data %>% 
-  group_by(date) %>% 
+
+
+admissions_icus_deaths <- 
+  covid_tracking_data %>% 
+  arrange(state, date) %>% 
+  mutate(state = case_when(state == "NY" ~ "NY", TRUE ~ "ALL OTHER STATES")) %>% 
+  mutate(state = factor(state, levels = c("ALL OTHER STATES","NY"))) %>% 
+  group_by(state, date) %>%  
   summarise_at(vars(hospitalizedCumulative, inIcuCurrently, death), sum, na.rm = T) %>% 
   mutate_at(vars("New Hospitalizations" = hospitalizedCumulative
-                 , "New ICU Admissions" = inIcuCurrently
+                 , "Change In ICU Patients" = inIcuCurrently
                  , "New Deaths" = death), diff_metric) %>% 
-  select(date, `New Hospitalizations`, `New ICU Admissions`, `New Deaths`) %>% 
-  gather(Var, Value, -date) %>% 
-  mutate(Var = factor(Var, c("New Hospitalizations","New ICU Admissions","New Deaths"))) %>% 
+  select(state, date, `New Hospitalizations`, `Change In ICU Patients`, `New Deaths`) %>% 
+  gather(Var, Value, -date, -state) %>% 
+  mutate(Var = factor(Var, c("New Hospitalizations","Change In ICU Patients","New Deaths"))) %>% 
   filter(date>ymd("2020 03 15")) %>% 
   ggplot()+
-  aes(x = date, y = Value, fill = Var)+
+  aes(x = date, y = Value, fill = state)+
   geom_col()+
-  theme(legend.position = "none")+
-  facet_wrap(~Var, scales = "free_y", ncol = 1)+
-  labs(y = NULL, x = NULL)
+  theme(legend.position = "right")+
+  facet_wrap(~Var
+             #, scales = "free_y"
+             , ncol = 1)+
+  labs(y = NULL, x = NULL)+
+  scale_fill_tq()+
+  theme_tq()+
+  labs(title = "Hospitalizations, ICU Admissions and Deaths"
+       , subtitle = Sys.Date())
 
 
 
+jpeg(paste0('img/admissions-icu-deaths',Sys.Date(),'.jpeg')
+     , width = 480*2
+     , height = 480*2
+     , res = 200
+)
+admissions_icus_deaths
+dev.off()
 
 
-
-
+# Positive Tests ----
+covid_tracking_data %>%
+  arrange(state, date) %>% 
+  mutate(positive = c(NA, diff(positive))) %>% 
+  filter(date>ymd("2020 03 20")) %>% 
+  group_by(date) %>% 
+  summarise(positive = sum(positive, na.rm = T)) %>% 
+  ggplot()+
+  aes(x = date, y = positive)+
+  geom_line()
 
 

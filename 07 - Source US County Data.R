@@ -28,8 +28,15 @@ plot(MA_sf$geometry)
 tmap::ttm()
 tmap::qtm(MA_sf, text = "NAME")
 
+MA_DATA <- 
+  county_data %>% 
+  filter(state == "Massachusetts") %>% 
+  left_join(MA_sf, by = c("county" = "NAME")) %>% 
+  group_by(county) %>% 
+  filter(date==max(date)) %>% 
+  st_as_sf()
 
-
+tmap::qtm(MA_DATA, fill = "deaths", text = "county")
 
 
 

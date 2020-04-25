@@ -75,7 +75,7 @@ message("Number of active NY cases as of ",max_date,": ",ny_cases$Active)
 
 ```{r message=FALSE, warning=FALSE}
 
-source("00 - Recording NYC Cases.R")
+# source("00 - Recording NYC Cases.R")
 source("04 - Process Case Data.R")
 
 ```
@@ -173,7 +173,10 @@ processed %>%
   geom_col(position = "dodge")+
   geom_smooth(se = F)+
   facet_wrap(~Var, scales = "free_y", ncol = 1)+
-  theme_tq()
+  theme_tq()+
+  labs(x = "days since reaching 100 reported cases"
+       , y = NULL
+       , title = "Hubei (Wuhan) COVID19 Confirmed Cases and Deaths")
 
 ```
 
@@ -300,7 +303,7 @@ processed %>%
   filter(Confirmed>100) %>% 
   mutate(days_since_reported = 1:n()) %>% 
    mutate(label = if_else(days_since_reported == max(days_since_reported) & 
-                            Confirmed>5000
+                            Confirmed>10000
                          , as.character(area), NA_character_)) %>%
   ggplot()+
   aes(x = days_since_reported, y = Confirmed, color = area)+
@@ -376,13 +379,16 @@ populations_2015 <-
     , TRUE ~ Entity
   ))
 
+
 processed %>% 
   filter(Country!="Other") %>% 
-  filter(Active>500) %>% 
+  filter(Active>20) %>% 
   group_by(area) %>% 
   mutate(days_since_reported=1:n()) %>% 
   mutate(label = ifelse(days_since_reported==max(days_since_reported) #& Active>2000
                         , area, NA_character_)) %>% 
+  ungroup() %>% 
+  mutate(area = ifelse(area=="uk","united kingdom", area)) %>% 
   inner_join(populations_2015, by = c(area = "Entity")) %>% 
   mutate(Active_per_1M_people = Active / Population_1M) %>% 
   ggplot()+
@@ -396,7 +402,8 @@ processed %>%
   theme(legend.position = "none")+
   theme(plot.title.position = "plot")+
   labs(title = "Active Cases Per 1 Million People"
-       , x = "days since reacing 500 active cases"
+       , subtitle = Sys.Date()
+       , x = "days since reacing 20 active cases"
        , y = "Active cases per 1 million people")
 
 
