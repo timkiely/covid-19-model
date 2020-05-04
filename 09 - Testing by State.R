@@ -161,9 +161,9 @@ daily_tests <-
        , x = NULL
        , color = NULL
        , title = "US needs to increase testing capacity to reach S. Korean levels"
-       , subtitle = "Current Test Results Per Day in US and Gap to Reach Containment Levels"
+       , subtitle = paste0(Sys.Date()," Current Test Results Per Day in US and Gap to Reach Containment Levels")
        )+
-  scale_x_date(limits = c(plot_dates$min_date, plot_dates$max_date))
+  scale_x_date(limits = c(ymd("2020 03 01"), plot_dates$max_date))
 
 positive_rate_av <-
   covid_tracking_data %>% 
@@ -224,13 +224,13 @@ positive_rate <-
        , x = NULL
        , subtitletitle = "US Positive Test Rate"
        )+
-  scale_x_date(limits = c(plot_dates$min_date, plot_dates$max_date))
+  scale_x_date(limits = c(ymd("2020 03 01"), plot_dates$max_date))
 
 # PATCHWORK PLOTS
 testing_plot_us_v_korea <- s_korea_rate_plot + (daily_tests /positive_rate)
 testing_plot_us_v_korea
 
-daily_us_tests <- (daily_tests /positive_rate )
+daily_us_tests <- (daily_tests/positive_rate )
 daily_us_tests
 
 jpeg(paste0('img/us-tests-vs-korea-',Sys.Date(),'.jpeg')
@@ -240,6 +240,17 @@ jpeg(paste0('img/us-tests-vs-korea-',Sys.Date(),'.jpeg')
 )
 
 testing_plot_us_v_korea
+
+dev.off()
+
+
+jpeg(paste0('img/us-daily-tests-',Sys.Date(),'.jpeg')
+     , width = 480*2.5
+     , height = 480*2.5
+     , res = 100
+)
+
+daily_us_tests
 
 dev.off()
 
@@ -311,5 +322,59 @@ covid_tracking_data %>%
   ggplot()+
   aes(x = date, y = positive)+
   geom_line()
+
+
+# Positive Rate by State ----
+positive_rate_7_day_av_by_state <-
+  covid_tracking_data %>% 
+  group_by(state, date) %>% 
+  summarise(total_tests = sum(positive+negative, na.rm = T)
+            , positive = sum(positive, na.rm = T)
+  ) %>% 
+  mutate(daily_tests = c(NA, diff(total_tests))
+         , daily_positives = c(NA, diff(positive))) %>% 
+  mutate(positive_rate = daily_positives/daily_tests) %>% 
+  filter(date>Sys.Date()-6) %>% 
+  filter(positive_rate<1, positive_rate>=0) %>% 
+  filter(is.finite(positive_rate), !is.na(positive_rate)) %>%
+  ungroup() %>% 
+  group_by(state) %>% 
+  summarise(positive_rate_7_day = mean(positive_rate, na.rm = T)) %>% 
+  arrange(desc(positive_rate_7_day)) %>% 
+  mutate(date = Sys.Date()) %>% 
+  mutate(positive_rate_7_day = scales::percent(round(positive_rate_7_day,2))) %>% 
+  distinct(state, .keep_all = T)
+
+covid_tracking_data %>%
+  group_by(state) %>% 
+  arrange(state, date) %>% 
+  filter(date>ymd("2020 03 01")) %>% 
+  group_by(state, date) %>% 
+  
+  summarise(total_tests = sum(positive+negative, na.rm = T)
+            , positive = sum(positive, na.rm = T)
+  ) %>% 
+  mutate(daily_tests = c(NA, diff(total_tests))
+         , daily_positives = c(NA, diff(positive))) %>% 
+  mutate(positive_rate = daily_positives/daily_tests) %>% 
+  left_join(positive_rate_7_day_av_by_state, by = c("state","date")) %>% 
+  mutate(positive_rate = ifelse(positive_rate>=1,NA,positive_rate)) %>% 
+  mutate(positive_rate = ifelse(positive_rate<0,NA,positive_rate)) %>% 
+  ungroup() %>% 
+  mutate(state = factor(state, levels = positive_rate_7_day_av_by_state$state)) %>% 
+  filter(!is.na(state)) %>% 
+  ggplot()+
+  aes(x = date, y = positive_rate, group = state, label = positive_rate_7_day)+
+  geom_line()+
+  geom_smooth(se = F, color = palette_dark()[3])+
+  geom_label(x = Inf, y = Inf, hjust = 1, vjust = 1)+
+  facet_wrap(~state)+
+  theme_tq()+
+  scale_color_tq()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
 
 

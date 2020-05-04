@@ -1,0 +1,124 @@
+
+
+# testing and general case/hosp/death data from COVID TRACKING PROJECT
+# https://covidtracking.com/api
+# browseURL("https://covidtracking.com/")
+
+
+# QUESTION: WHAT DOES US TEST POSITIVE RATE NEED TO BE?
+
+
+library(tidyverse)
+library(jsonlite)
+library(lubridate)
+library(tidyquant)
+library(patchwork)
+
+
+# US TESTING DATA
+covid_tracking_data <- fromJSON("https://covidtracking.com/api/v1/states/daily.json") %>% as_tibble() %>% 
+  select(date, state, positive, negative, pending, total, hospitalizedCurrently, hospitalizedCumulative
+         , inIcuCurrently, inIcuCumulative, recovered, death, posNeg) %>% 
+  mutate(date = ymd(date))
+
+covid_tracking_data %>% glimpse()
+
+# GEORGIA SINCE REOPENING 
+GA_since_reopening <- 
+  covid_tracking_data %>% 
+  group_by(state) %>% 
+  arrange(state, date) %>% 
+  mutate(test_per_day = c(NA, diff(positive+negative))
+         , positive_rate = positive/test_per_day
+         , new_hospitalizations = c(NA, diff(hospitalizedCumulative))
+         , weekday = lubridate::wday(date, label = T)) %>% 
+  filter(state=="GA") %>%  
+  mutate(trailing_7_day_new_hospitalizations = TTR::runSum(new_hospitalizations, n = 7)) %>%  
+  select(date, new_hospitalizations, trailing_7_day_new_hospitalizations, weekday) %>% # tail(20) 
+  filter(date>ymd("2020 03 20")) %>% 
+  ggplot()+
+  aes(x = date, y = new_hospitalizations, fill = weekday)+
+  geom_col()+
+  geom_vline(xintercept = ymd("2020 04 24"))+
+  geom_line(aes(y = trailing_7_day_new_hospitalizations, group =1 ), color = "red", show.legend = F)+
+  scale_y_continuous(labels = scales::comma)+
+  theme_tq()+
+  theme(plot.title.position = "plot"
+        , legend.position = "right")+
+  labs(y = "New Hospitalizations"
+       , x = NULL
+       , title = "1) New hospitalizations in GA have \nincreased since reopening on Friday, May 24th"
+       , subtitle = "Red line = trailing 7 day admissions"
+       , caption = Sys.Date())
+
+
+
+jpeg(paste0('img/GA-since-reopening',Sys.Date(),'.jpeg')
+     , width = 480*2
+     , height = 480*2
+     , res = 200
+)
+GA_since_reopening
+dev.off()
+
+
+# COMPARE GA TO OTHER STATES
+
+all_state_index_value <- 
+  covid_tracking_data %>% 
+  group_by(state) %>% 
+  arrange(state, date) %>% 
+  mutate(new_hospitalizations = c(NA, diff(hospitalizedCumulative))) %>%
+  select(state, date, new_hospitalizations) %>% 
+  filter(!is.na(new_hospitalizations)) %>% 
+  mutate(trailing_7_new_hospitalizations_index = RcppRoll::roll_sumr(new_hospitalizations, 7, fill = NA, na.rm = T)) %>% 
+  filter(date==ymd("2020 04 24")) %>%
+  select(state, trailing_7_new_hospitalizations_index) %>% 
+  filter(trailing_7_new_hospitalizations_index>0)  %>% 
+  filter(state!="AR")
+
+
+other_states_indexed <- 
+  covid_tracking_data %>% 
+  inner_join(all_state_index_value, by = 'state') %>% 
+  group_by(state) %>% 
+  arrange(state, date) %>% 
+  mutate(new_hospitalizations = c(NA, diff(hospitalizedCumulative))) %>% 
+  mutate(trailing_7_new_hospitalizations = RcppRoll::roll_sumr(new_hospitalizations, 7, fill = NA, na.rm = T)) %>% 
+  mutate(trailing_7_indexed = trailing_7_new_hospitalizations/trailing_7_new_hospitalizations_index) %>% 
+  filter(date>=ymd("2020 04 24")) %>%
+  select(state, date, trailing_7_indexed, trailing_7_new_hospitalizations, trailing_7_new_hospitalizations_index) %>% 
+  mutate(label = ifelse(date==max(date), state, NA)) %>% 
+  mutate(now_index = ifelse(date==max(date), trailing_7_indexed, NA)) %>% 
+  filter(any(now_index>1)) %>% 
+  filter(any(now_index<2)) %>% 
+  filter(!state%in%c("ID","RI","KY","SC")) %>% 
+  ggplot()+
+  aes(x = date, y = trailing_7_indexed, color = state)+
+  #geom_line()+
+  geom_smooth(se = F)+
+  geom_vline(xintercept = ymd("2020 04 24"))+
+  geom_hline(yintercept = 1, color = "black", size = 2)+
+  ggrepel::geom_label_repel(aes(label = label), show.legend = F)+
+  scale_y_continuous(labels = scales::comma)+
+  scale_color_tq()+
+  theme_tq()+
+  theme(plot.title.position = "plot"
+        , legend.position = "none")+
+  labs(y = "Trailing 7 day new hospitalizations\nindexed to 2020 04 24"
+       , x = NULL
+       , title = "2) However, Georgia's uptick in new hospitalizations \nis not extradorinary for this period compared to other states"
+       , subtitle = "Trailing 7 day new hospitalizations indexed to Friday May 24th. Select states shown"
+       , caption = Sys.Date())
+
+library(patchwork)
+
+jpeg(paste0('img/GA-indexed-since-reopening',Sys.Date(),'.jpeg')
+     , width = 480*4
+     , height = 480*2
+     , res = 100
+)
+GA_since_reopening+other_states_indexed
+dev.off()
+
+
