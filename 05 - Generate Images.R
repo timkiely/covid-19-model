@@ -646,3 +646,54 @@ jpeg(paste0('img/deaths-per-1-million',Sys.Date(),'.jpeg')
 )
 deaths_per_1_million
 dev.off()
+
+
+
+
+# 14.0 UK BEHIND ----
+
+westerns_countries_count <- 
+  processed %>% 
+  filter(area %in% c("italy","us","spain","france","south korea","uk","germany")) %>% 
+  group_by(area) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  mutate(label = ifelse(days_since_reported==max(days_since_reported), area, NA_character_)) %>% 
+  filter(datetime>ymd("2020 03 01")) %>% 
+  ungroup() %>% 
+  mutate(area = ifelse(area=="uk","united kingdom", area)) %>% 
+  inner_join(populations_2015, by = c(area = "Entity")) %>% 
+  mutate(Deaths_per_1M_people = Deaths / Population_1M) %>% 
+  ggplot()+
+  aes(x = datetime, y = Deaths, group = area, label = area, color = area)+
+  geom_line()+
+  geom_label_repel(aes(label = label), nudge_x = 0.5, segment.alpha = 0.5)+
+  ggthemes::scale_color_economist()+
+  theme_tq()+
+  theme(plot.title.position = "plot", legend.position = "none")+
+  labs(title = "UK passes Italy for most deaths in Europe"
+       , subtitle = Sys.Date()
+       , x = NULL)
+
+westerns_countries_percap <- 
+  processed %>% 
+  filter(area %in% c("italy","us","spain","france","south korea","uk","germany")) %>% 
+  group_by(area) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  mutate(label = ifelse(days_since_reported==max(days_since_reported), area, NA_character_)) %>% 
+  filter(datetime>ymd("2020 03 01")) %>% 
+  ungroup() %>% 
+  mutate(area = ifelse(area=="uk","united kingdom", area)) %>% 
+  inner_join(populations_2015, by = c(area = "Entity")) %>% 
+  mutate(Deaths_per_1M_people = Deaths / Population_1M) %>% 
+  ggplot()+
+  aes(x = datetime, y = Deaths_per_1M_people, group = area, label = area, color = area)+
+  geom_line()+
+  geom_label_repel(aes(label = label), nudge_x = 0.5, segment.alpha = 0.5)+
+  ggthemes::scale_color_economist()+
+  theme_tq()+  
+  theme(plot.title.position = "plot", legend.position = "none")+
+  labs(title = "Deaths per 1M people"
+       , x = NULL
+       , y = "Deaths per 1M people")
+library(patchwork)
+westerns_countries_count/westerns_countries_percap
