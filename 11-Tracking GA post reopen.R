@@ -114,6 +114,9 @@ other_states_indexed <-
 
 library(patchwork)
 
+
+GA_since_reopening
+
 jpeg(paste0('img/GA-indexed-since-reopening',Sys.Date(),'.jpeg')
      , width = 480*4
      , height = 480*2
