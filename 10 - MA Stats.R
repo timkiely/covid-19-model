@@ -10,26 +10,14 @@ the_link_4_22 <- "https://www.boston.com/news/coronavirus/2020/04/22/massachuset
 the_link_4_29 <- "https://www.boston.com/news/coronavirus/2020/04/29/latest-massachusetts-cities-towns-covid-19-cases-numbers"
 the_link_5_06 <- "https://www.boston.com/news/coronavirus/2020/05/06/massachusetts-city-town-coronavirus-numbers"
 the_link_5_13 <- "https://www.boston.com/news/coronavirus/2020/05/13/massachusetts-town-city-covid-19-cases-numbers"
-
-
-the_page_4_22 <- read_html(the_link_4_22)
-the_page_4_29 <- read_html(the_link_4_29)
-
-infection_rates_by_town_22 <- 
-  html_table(the_page_4_22, header = T)[[1]] %>% 
-  as_tibble() %>% 
-  rename("Count 4/22" = Count, "Rate 4/22" = Rate)
-
-infection_rates_by_town_29 <- 
-  html_table(the_page_4_29, header = T)[[1]] %>% 
-  as_tibble() %>% 
-  rename("Count 4/29" = Count, "Rate 4/29" = Rate)
+the_link_5_20 <- "https://www.boston.com/news/coronavirus/2020/05/20/latest-massachusetts-town-city-covid-19-numbers"
 
 
 list(the_link_4_22
      , the_link_4_29
      , the_link_5_06
      , the_link_5_13
+     , the_link_5_20
      ) %>% 
   map(~{
     message(.x)
@@ -43,7 +31,8 @@ list(the_link_4_22
                str_remove("https://www.boston.com/news/coronavirus/") %>% 
                str_remove("/massachusetts-cities-towns-coronavirus-cases-numbers") %>% 
                str_remove("/latest-massachusetts-cities-towns-covid-19-cases-numbers") %>% 
-               str_remove("/massachusetts-town-city-covid-19-cases-numbers") %>% 
+               str_remove("/massachusetts-town-city-covid-19-cases-numbers") %>%  
+               str_remove("/latest-massachusetts-town-city-covid-19-numbers") %>% 
                lubridate::ymd())
   }) -> MA_city_town_data
 
@@ -182,6 +171,7 @@ infection_rate_sf %>%
                   , Grouping = city_town
                   , LineColor = custom_colors
                   , Title = "25 fastest growing infection rates in MA"
+                  , SubTitle = Sys.Date()
                   , Caption = NULL
   )
 
