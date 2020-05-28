@@ -20,23 +20,26 @@ jhu_data <- tidycovid19::download_jhu_csse_covid19_data(type = "us_county", cach
 goog_trends %>% 
   filter(state=="Arizona") %>% 
   filter(county=="Maricopa County") %>% 
+  mutate_at(vars(retail_recreation:residential), function(x) rollmean(x, 7, na.pad = T)) %>% 
   gather(var, value, -state, -county, -date,-timestamp) %>% 
   ggplot()+
   aes(x = date, y = value, color = var) %>% 
   geom_line()+
   facet_wrap(~county)
 
-
-goog_trends %>% 
-  filter(state=="Massachusetts") %>% 
-  gather(var, value, -state, -county, -date,-timestamp) %>% 
-  filter(var%in%c("residential","workplaces")) %>%
-  group_by(state, county, var) %>% 
-  mutate(value = rollmean(value, 7, na.pad = T)) %>% 
-  ggplot()+
-  aes(x = date, y = value, color = var) %>% 
-  geom_line()+
-  facet_wrap(~county)
+plotly::ggplotly(
+  
+  goog_trends %>% 
+    filter(state=="Massachusetts") %>% 
+    gather(var, value, -state, -county, -date,-timestamp) %>% 
+    #filter(var%in%c("residential","workplaces")) %>%
+    group_by(state, county, var) %>% 
+    mutate(value = rollmean(value, 7, na.pad = T)) %>% 
+    ggplot()+
+    aes(x = date, y = value, color = var) %>% 
+    geom_line()+
+    facet_wrap(~county)
+)
 
 
 goog_trends_state <- tidycovid19::download_google_cmr_data(type = "country_region", cached = F)
@@ -48,7 +51,7 @@ GA_mobility <-
   filter(region=="Georgia") %>% 
   mutate_at(vars(retail_recreation:residential), function(x) rollmean(x, 7, na.pad = T)) %>% 
   gather(Var, Value, -c(iso3c:date, timestamp)) %>% 
-  filter(Var%in%c("residential","retail_recreation")) %>%
+  #filter(Var%in%c("residential","retail_recreation")) %>%
   filter(date>ymd("2020 04 01")) %>% 
   ggplot()+
   aes(x = date, y = Value, color = Var) %>% 
@@ -62,6 +65,7 @@ GA_mobility <-
        , y = "percent change since baseline"
        , color = NULL)
 
+plotly::ggplotly(GA_mobility)
 
 
 goog_trends %>% 

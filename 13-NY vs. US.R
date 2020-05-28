@@ -63,8 +63,8 @@ new_hospitalizations <-
   labs(y = NULL
        , x = NULL
        , fill = NULL
-       , title = "NY numbers improving while rest of US plateaus / worsens"
-       , subtitle = "Blue line is Friday, May 24th"
+       , title = "Hospitalizations and Deaths"
+       , subtitle = "Blue line is Friday, May 24th (GA reopening)"
        , caption = Sys.Date())
 
 new_by_state <- 
@@ -92,26 +92,28 @@ new_by_state <-
   group_by(state) %>% 
   summarise_at(vars(`Last 7 Days`,`Previous 7 Days`), sum, na.rm = T) %>%
   mutate(state = fct_lump(state, 10, w = `Last 7 Days`)) %>%
+  arrange(`Last 7 Days`) %>% 
   mutate(num = 1:n()) %>% 
-  arrange(desc(num)) %>% 
+  arrange(num) %>% 
   mutate(state = fct_inorder(state)) %>%
+  arrange(state) %>% 
   ggplot()+
   aes(x = state, y = `Last 7 Days`)+
   geom_col()+
-  geom_point(aes(y = `Previous 7 Days`), size = 2, color = palette_dark()[2], show.legend = T)+
+  geom_point(aes(y = `Previous 7 Days`), size = 4, color = palette_dark()[3], show.legend = T)+
   theme_tq()+
   theme(legend.position = "top")+
   scale_fill_tq()+
   coord_flip()+
   labs(x = NULL
        , y = "Recent Hospitalizations"
-       , title = "New Hospitalizations in the past 7 days"
-       , subtitle = "Red dot represents new hospitalizations for the week before last"
+       , title = "Most New Hospitalizations Past 7 days"
+       , subtitle = "Teal dot represents new hospitalizations previous week"
        , caption = Sys.Date()
   )
 
 
-new_hospitalizations+new_by_state
+new_hospitalizations+new_by_state+patchwork::plot_layout(widths=c(2,1))
 
 jpeg(paste0('img/new-hospitalizations-all-us',Sys.Date(),'.jpeg')
      , width = 480*4

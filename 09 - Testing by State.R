@@ -345,35 +345,6 @@ positive_rate_7_day_av_by_state <-
   mutate(positive_rate_7_day = scales::percent(round(positive_rate_7_day,2))) %>% 
   distinct(state, .keep_all = T)
 
-covid_tracking_data %>%
-  group_by(state) %>% 
-  arrange(state, date) %>% 
-  filter(date>ymd("2020 03 01")) %>% 
-  group_by(state, date) %>% 
-  
-  summarise(total_tests = sum(positive+negative, na.rm = T)
-            , positive = sum(positive, na.rm = T)
-  ) %>% 
-  mutate(daily_tests = c(NA, diff(total_tests))
-         , daily_positives = c(NA, diff(positive))) %>% 
-  mutate(positive_rate = daily_positives/daily_tests) %>% 
-  left_join(positive_rate_7_day_av_by_state, by = c("state","date")) %>% 
-  mutate(positive_rate = ifelse(positive_rate>=1,NA,positive_rate)) %>% 
-  mutate(positive_rate = ifelse(positive_rate<0,NA,positive_rate)) %>% 
-  ungroup() %>% 
-  mutate(state = factor(state, levels = positive_rate_7_day_av_by_state$state)) %>% 
-  filter(!is.na(state)) %>% 
-  ggplot()+
-  aes(x = date, y = positive_rate, group = state, label = positive_rate_7_day)+
-  geom_line()+
-  geom_smooth(se = F, color = palette_dark()[3])+
-  geom_label(x = Inf, y = Inf, hjust = 1, vjust = 1)+
-  facet_wrap(~state)+
-  theme_tq()+
-  scale_color_tq()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
 
 
 
