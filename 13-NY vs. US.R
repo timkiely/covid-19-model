@@ -41,8 +41,8 @@ new_hospitalizations <-
   select(
     ny
     , date
-    , "New Deaths" = new_deaths
-    , "New Hospitalizations" = new_hospitalizations
+    #, "New Deaths" = new_deaths
+    #, "New Hospitalizations" = new_hospitalizations
     , "Trailing 7 day hospitalizations" = trailing_7_day_new_hospitalizations
     , "Trailing 7 day deaths" = trailing_7_day_new_deaths 
   ) %>% 
@@ -98,22 +98,25 @@ new_by_state <-
   mutate(state = fct_inorder(state)) %>%
   arrange(state) %>% 
   ggplot()+
-  aes(x = state, y = `Last 7 Days`)+
-  geom_col()+
-  geom_point(aes(y = `Previous 7 Days`), size = 4, color = palette_dark()[3], show.legend = T)+
+  aes(x = state)+
+  
+  geom_col(aes(y = `Last 7 Days`, fill = palette_light()[1]))+
+  scale_fill_identity(name = NULL, guide = "legend", labels = c('Current Week'))+
+  
+  geom_point(aes(y = `Previous 7 Days`, color = palette_light()[2]), size = 4)+
+  scale_color_identity(name = NULL, guide = 'legend', label = c("Previous Week")) +
+  
   theme_tq()+
   theme(legend.position = "top")+
-  scale_fill_tq()+
   coord_flip()+
   labs(x = NULL
        , y = "Recent Hospitalizations"
-       , title = "Most New Hospitalizations Past 7 days"
-       , subtitle = "Teal dot represents new hospitalizations previous week"
+       , title = "New Hospitalizations Trailing 7 Days, Top 10 States and Other"
        , caption = Sys.Date()
   )
 
 
-new_hospitalizations+new_by_state+patchwork::plot_layout(widths=c(2,1))
+new_hospitalizations+new_by_state+patchwork::plot_layout(widths=c(1,1))
 
 jpeg(paste0('img/new-hospitalizations-all-us',Sys.Date(),'.jpeg')
      , width = 480*4
