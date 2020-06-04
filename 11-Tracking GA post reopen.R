@@ -176,7 +176,6 @@ covid_tracking_data %>%
   geom_col()+
   geom_vline(xintercept = ymd("2020 04 24"))+
   theme_tq()+
-  scale_x_date(limits = c(ymd("2020 04 01"), ymd("2020 05 10")))+
   theme(plot.title.position = "plot"
         , legend.position = "right")+
   labs(y = "New Hospitalizations"

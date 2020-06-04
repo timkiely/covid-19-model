@@ -13,8 +13,10 @@ us_names <-
 
 us_state_names <- 
   cases_data %>% 
-  select(arizona:texas,florida:`west virginia`,wyoming) %>% 
+  select(one_of(str_to_lower(state.name))) %>% 
   names()
+
+
 
 mexico_names <- cases_data %>% select(mexico) %>% names()
 uk_names <- cases_data %>% select(uk) %>% names()
@@ -39,12 +41,11 @@ spain_names <- cases_data %>% select(spain) %>% names()
 processed <-
   cases_data %>% 
   gather(area, cases, -datetime) %>% 
-  #filter(area=='new york', !is.na(cases)) %>% 
   separate(cases, into = c("Confirmed","Suspected","Cured","Deaths")
            , sep = "-", extra = "warn", remove = F) %>% 
   mutate_at(vars(Confirmed:Deaths), function(x)ifelse(is.na(x),0,x)) %>% 
   mutate_at(vars(Confirmed:Deaths), as.numeric) %>% 
-  mutate(Active = Confirmed+Suspected-Cured-Deaths) %>% 
+  mutate(Active = Confirmed-Cured-Deaths) %>% 
   mutate(area = str_remove_all(area, "\\\\xa0")) %>% 
   mutate(first_reported = case_when(!is.na(cases)&is.na(lag(cases,1)) ~ 1
                                     , TRUE ~ NA_real_
@@ -60,7 +61,7 @@ processed <-
   ungroup() %>% 
   mutate(Country = case_when(
     area %in% china_names ~ "China"
-    , area %in% us_names ~ "US"
+    , area %in% us_state_names ~ "US"
     , area %in% mexico_names ~ "Mexico"
     , area %in% uk_names ~ "UK"
     , area %in% canada_names ~ "canada"

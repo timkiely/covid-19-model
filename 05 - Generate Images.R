@@ -43,7 +43,7 @@ jpeg(paste0('img/covid-nyc-china-',Sys.Date(),'.jpeg')
      , height = 480*2
      , res = 200
 )
-NYC_vs_China_cases
+#NYC_vs_China_cases
 dev.off()
 
 
@@ -53,19 +53,20 @@ US_States <-
   processed %>% 
   filter(area%in%us_state_names) %>% 
   group_by(area) %>% 
-  filter(Confirmed>20) %>% 
+  filter(any(Confirmed>100000)) %>% 
   mutate(days_since_reported = 1:n()) %>% 
   mutate(label = ifelse(days_since_reported == max(days_since_reported) & Confirmed>100
                         ,area, NA_character_)) %>% 
   ggplot()+
   aes(x = days_since_reported, y = Confirmed, color = area)+
   geom_line(size = 2)+
-  ggrepel::geom_label_repel(aes(label = label), na.rm = T)+
+  #ggrepel::geom_label_repel(aes(label = label), na.rm = T)+
   theme_tq()+
-  theme(legend.position = "none")+
+  #theme(legend.position = "none")+
   scale_color_tq(theme = "light")+
-  labs(x = "Days since reaching 20 cases"
-       , y = "Confirmed Cases")
+  labs(x = "Days since first reported case"
+       , y = "Confirmed Cases"
+       , title = "States with >100K Cases")
 
 
 
@@ -74,7 +75,7 @@ jpeg(paste0('img/covid-US-States-',Sys.Date(),'.jpeg')
      , height = 480*2
      , res = 200
 )
-US_States
+# US_States
 dev.off()
 
 
@@ -259,16 +260,26 @@ dev.off()
 # 8.0 China Resurgence ----
 chinese_provinces <- 
   processed %>% 
-  filter(Country=="China", area!="hubei") %>% 
+  filter(Country%in%c("China")) %>% 
+  filter(area!="hubei",area!="new york", area!="us") %>% 
+  filter(area!="OTHER", Country!="Other") %>% 
+  group_by(Country, area, datetime) %>% 
+  summarise(Active = sum(Active, na.rm = T)) %>% 
+  group_by(area) %>% 
+  filter(Active>10) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  ungroup() %>% 
   ggplot()+
-  aes(x = days_since_reported, y = Active, group = area, label = area, color = Country)+
+  aes(x = days_since_reported, y = Active, group = area,color = Country)+
   geom_line()+
+  facet_wrap(~Country, scales = "free_y", ncol = 1) +
   theme_tq()+
   scale_color_tq()+
+  scale_y_log10(labels = scales::comma)+
   theme(legend.position = "none", plot.title.position = "plot")+
-  labs(x = "Days Since First Reported"
+  labs(x = "Days Since Reaching 10 Active Cases"
        , y = "Active Cases"
-       , title = "China Provinces Ex-Wuhan")
+       , title = "Chinese Provinces (ex-Wuhan) vs. US States (ex-NY)")
 
 jpeg(paste0('img/chinese-provinces-',Sys.Date(),'.jpeg')
      , width = 480*2
@@ -697,3 +708,76 @@ westerns_countries_percap <-
        , y = "Deaths per 1M people")
 library(patchwork)
 westerns_countries_count/westerns_countries_percap
+
+
+
+# 15.0 US States vs. Chinese Provinces ----
+states_provinces_regular <- 
+  processed %>% 
+  filter(Country%in%c("China","US")) %>% 
+  filter(area!="hubei",area!="new york", area!="us") %>% 
+  filter(area!="OTHER", Country!="Other") %>% 
+  group_by(Country, area, datetime) %>% 
+  summarise(Active = sum(Active, na.rm = T)) %>% 
+  group_by(area) %>% 
+  filter(Active>10) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  ungroup() %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Active, group = area,color = Country)+
+  geom_line()+
+  facet_wrap(~Country, scales = "free_y", ncol = 1) +
+  theme_tq()+
+  scale_color_tq()+
+  scale_y_continuous(labels = scales::comma)+
+  #scale_y_log10(labels = scales::comma)+
+  theme(legend.position = "none", plot.title.position = "plot")+
+  labs(x = "Days Since Reaching 10 Active Cases"
+       , y = "Active Cases"
+       , title = "Regular Scale")
+
+states_provinces_log <- 
+  processed %>% 
+  filter(Country%in%c("China","US")) %>% 
+  filter(area!="hubei",area!="new york", area!="us") %>% 
+  filter(area!="OTHER", Country!="Other") %>% 
+  group_by(Country, area, datetime) %>% 
+  summarise(Active = sum(Active, na.rm = T)) %>% 
+  group_by(area) %>% 
+  filter(Active>10) %>% 
+  mutate(days_since_reported=1:n()) %>% 
+  ungroup() %>% 
+  ggplot()+
+  aes(x = days_since_reported, y = Active, group = area,color = Country)+
+  geom_line()+
+  facet_wrap(~Country, scales = "free_y", ncol = 1) +
+  theme_tq()+
+  scale_color_tq()+
+  scale_y_log10(labels = scales::comma)+
+  theme(legend.position = "none", plot.title.position = "plot")+
+  labs(x = "Days Since Reaching 10 Active Cases"
+       , y = "Active Cases"
+       , title = "Log Scale")
+
+library(patchwork)
+
+provinces_states_final <- 
+states_provinces_regular+states_provinces_log + 
+  plot_annotation(
+  title = 'Chinese Provinces (ex-Wuhan) vs. US States (ex-NY)'
+  ,subtitle = Sys.Date()
+  , caption = 'Source: JHU'
+)
+provinces_states_final
+
+
+
+jpeg(paste0('img/provinces-vs-states-',Sys.Date(),'.jpeg')
+     , width = 480*4
+     , height = 480*3
+     , res = 200
+)
+provinces_states_final
+dev.off()
+
+
