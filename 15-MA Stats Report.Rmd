@@ -58,7 +58,7 @@ glimpse(MA_town_data)
 infection_rate_df <- 
   MA_town_data %>% 
   filter(Town!="Statewide Total") %>% 
-  select(-contains("Percent Increase"),-`Increase Since First Report On April 15`) %>% 
+  select(-contains("Percent Increase"),-`Increase Since First Report On April 15`,-`Confirmed Cases`) %>% 
   pivot_longer(-Town,names_to = "Date",values_to = "Count") %>% 
   mutate(Date = str_remove_all(Date, "[/]2020")
          , Date = paste0(Date,"/2020")
@@ -73,11 +73,15 @@ infection_rate_sf <-
 infection_rate_df%>% 
   filter(`Town`=="Amesbury")
 
+infection_rate_df%>% 
+  filter(`Town`=="Newburyport")
+
 infection_rate_df %>% 
   filter(`Town`=="Beverly")
 
 infection_rate_df %>% 
   filter(`Town`=="Topsfield")
+
 ```
 
 
@@ -126,7 +130,7 @@ infection_rate_sf %>%
          , increase_in_count = Count-lag(Count,1)
          #, change_in_rate = Rate/lag(Rate,1)-1
          ) %>% 
-  filter(Date==max(Date)) %>% 
+  filter(Date==max(Date, na.rm = T)) %>% 
   filter(increase_in_count>0) %>% 
   mapview(., zcol = "increase_in_count", cex = "increase_in_count"
           , label = paste0(.$city_town, " ",.$increase_in_count))  
@@ -145,7 +149,7 @@ infection_rate_sf %>%
   mutate(percent_change_in_count = Count/lag(Count,1)-1
          , increase_in_count = Count-lag(Count,1)
   ) %>% 
-  filter(Date==max(Date)) %>% 
+  filter(Date==max(Date, na.rm = T)) %>% 
   filter(!is.na(percent_change_in_count), !is.infinite(percent_change_in_count)) %>% 
   filter(percent_change_in_count>.1, increase_in_count>10) %>% 
   mapview(., zcol = "percent_change_in_count", cex = "percent_change_in_count"
@@ -171,6 +175,7 @@ library(CGPfunctions)
 
 custom_colors <- 
   infection_rate_sf %>% 
+  filter(!is.na(Date)) %>% 
   st_set_geometry(NULL) %>% 
   select(city_town, contains("Count")) %>%
   mutate(trend = case_when(
@@ -186,6 +191,7 @@ custom_colors <-
 
 counts_slope <- 
   infection_rate_sf %>% 
+  filter(!is.na(Date)) %>% 
   mutate(custome_colors = custom_colors) %>% 
   st_set_geometry(NULL) %>% 
   filter(custom_colors=="darkgreen"
@@ -202,7 +208,6 @@ counts_slope <-
                   , Caption = NULL
   )
 
-library(patchwork)
 counts_slope
 
 ```
@@ -218,11 +223,12 @@ counts_slope
 
 rank_by_percent_change <- 
   infection_rate_df %>% 
+  filter(!is.na(Date)) %>% 
   arrange(`Town`, Date) %>% 
   group_by(`Town`) %>% 
   mutate(percent_change = Count/lag(Count,1)-1) %>% 
   mutate(percent_change = ifelse(is.infinite(percent_change),NA,percent_change)) %>% 
-  filter(Date==max(Date)) %>% 
+  filter(Date==max(Date, na.rm = T)) %>% 
   ungroup() %>% 
   arrange(desc(percent_change)) %>% 
   select(`Town`, percent_change)
@@ -231,22 +237,19 @@ rank_by_percent_change <-
 # (>10 increase in count only)
 top_25_fastest_growers_by_percent_change <- 
   infection_rate_df %>% 
+    filter(!is.na(Date)) %>% 
   arrange(`Town`, Date) %>% 
   group_by(`Town`) %>% 
   mutate(percent_change = Count/lag(Count,1)-1) %>% 
   mutate(percent_change = ifelse(is.infinite(percent_change),NA,percent_change)) %>% 
   mutate(Increase_In_Count= Count-lag(Count,1)) %>% 
-  filter(Date==max(Date)) %>% 
+  filter(Date==max(Date, na.rm = T)) %>% 
   filter(Increase_In_Count>10) %>% 
   ungroup() %>% 
   arrange(desc(percent_change)) %>% 
   head(25) %>% 
   #print(n=Inf) %>% 
   select(`Town`,percent_change)
-
-
-
-
 
 
 map_to_colors <- 
@@ -265,6 +268,7 @@ custom_colors<-
 
 # 4.1 SLOPEGRAPH TOP 25 PERCENT CHANGE ----
 infection_rate_df %>% 
+    filter(!is.na(Date)) %>% 
   arrange(`Town`, Date) %>% 
   group_by(`Town`) %>% 
   mutate(percent_change = Count/lag(Count,1)-1) %>% 
@@ -290,6 +294,7 @@ infection_rate_df %>%
 ```{r}
 map_data <- 
   infection_rate_sf %>% 
+    filter(!is.na(Date)) %>% 
   inner_join(rank_by_percent_change, by = c("city_town"="Town")) %>% 
   group_by(city_town) %>% 
   filter(Date==max(Date)) %>% 
