@@ -47,8 +47,12 @@ library(googlesheets4)
 ma_towns <- read_sf('data/ma_towns_2.geojson') %>% 
   select(city_town, geometry)
 
+googlesheets4::gs4_auth(email = "timothy.j.kiely@gmail.com")
+
 MA_town_data <- 
-  read_sheet("https://docs.google.com/spreadsheets/d/12x3bbOzjNY2roOggAA8JjapNwp8y_J4bj4xpK4IL4EA/edit#gid=1661850317")
+  read_sheet("https://docs.google.com/spreadsheets/d/12x3bbOzjNY2roOggAA8JjapNwp8y_J4bj4xpK4IL4EA/edit#gid=1661850317"
+             , sheet = "Running Total") %>% 
+  filter(!is.na(Town))
 
 # some columns read in as lists (?)
 MA_town_data <- MA_town_data %>% mutate_if(is.list, function(x)readr::parse_number(unlist(x)))
@@ -57,8 +61,7 @@ glimpse(MA_town_data)
 
 infection_rate_df <- 
   MA_town_data %>% 
-  filter(Town!="Statewide Total") %>% 
-  select(-contains("Percent Increase"),-`Increase Since First Report On April 15`,-`Confirmed Cases`) %>% 
+  select(-contains("Percent Increase"),-`Increase Since First Report On April 15`) %>% 
   pivot_longer(-Town,names_to = "Date",values_to = "Count") %>% 
   mutate(Date = str_remove_all(Date, "[/]2020")
          , Date = paste0(Date,"/2020")
@@ -151,7 +154,7 @@ infection_rate_sf %>%
   ) %>% 
   filter(Date==max(Date, na.rm = T)) %>% 
   filter(!is.na(percent_change_in_count), !is.infinite(percent_change_in_count)) %>% 
-  filter(percent_change_in_count>.1, increase_in_count>10) %>% 
+  #filter(percent_change_in_count>.1, increase_in_count>10)%>% 
   mapview(., zcol = "percent_change_in_count", cex = "percent_change_in_count"
           , label = paste0("Town: ",.$city_town
                            , "\n"
